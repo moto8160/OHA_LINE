@@ -1,0 +1,36 @@
+# Docker Compose 設定ファイル
+# PostgreSQL データベースをコンテナで実行するための設定
+
+# サービス：コンテナ起動設定のまとまり
+# コンテナ：イメージを実行したもの、実際に動いているアプリ
+# イメージ：アプリと実行環境が固まったもの
+# ボリューム：コンテナの外にあるデータ置き場、永続化させたいデータ
+
+version: '3.8'
+
+#コンテナ定義のグループ
+services:
+  db: #サービス名
+    image: postgres:16-alpine #公式イメージ
+    container_name: postgres
+
+    #初回コンテナ起動時の設定（アプリに渡す環境変数）
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db #作成されるDB名
+
+    #ホスト側:5432 : コンテナ側:5432（PostgreSQL のデフォルトポート）
+    #ローカルから5432で接続可
+    ports:
+      - '5432:5432'
+
+    # ボリュームマウント（コンテナ内のデータをコンテナ外部に接続）
+    # コンテナ再起動・削除でDBデータを消さないように
+    volumes:
+      # ここにデータ保存する（Dockerが管理するローカルディスク）
+      - postgres_data:/var/lib/postgresql/data
+
+# ボリューム定義
+volumes:
+  postgres_data: # ボリューム名
