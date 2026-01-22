@@ -14,14 +14,14 @@ LineNoticeアプリケーションの最小限のデータベーススキーマ�
 
 LINE認証済みユーザーの情報を管理するテーブル。
 
-| フィールド名     | 型       | 制約              | 説明                                       |
-| ---------------- | -------- | ----------------- | ------------------------------------------ |
-| id               | String   | PRIMARY KEY, CUID | ユーザーの一意識別子                       |
-| lineUserId       | String   | UNIQUE, NOT NULL  | LINEプラットフォーム内のユーザーID         |
-| lineToken        | String   | NOT NULL          | LINEとのメッセージ送受信に使用するトークン |
-| notificationTime | String   | DEFAULT: "09:00"  | 毎日Todoを通知する時刻（HH:mm形式）        |
-| createdAt        | DateTime | DEFAULT: now()    | ユーザー作成日時                           |
-| updatedAt        | DateTime | AUTO UPDATE       | 最終更新日時                               |
+| フィールド名     | 型       | 制約                    | 説明                                       |
+| ---------------- | -------- | ----------------------- | ------------------------------------------ |
+| id               | Int      | PRIMARY KEY, AUTO INCR  | ユーザーの一意識別子                       |
+| lineUserId       | String   | UNIQUE, NOT NULL        | LINEプラットフォーム内のユーザーID         |
+| lineToken        | String   | NOT NULL                | LINEとのメッセージ送受信に使用するトークン |
+| notificationTime | String   | DEFAULT: "09:00"        | 毎日Todoを通知する時刻（HH:mm形式）        |
+| createdAt        | DateTime | DEFAULT: now()          | ユーザー作成日時                           |
+| updatedAt        | DateTime | AUTO UPDATE             | 最終更新日時                               |
 
 **リレーション:**
 
@@ -30,7 +30,7 @@ LINE認証済みユーザーの情報を管理するテーブル。
 **例:**
 
 ```
-id: cm123abc...
+id: 1
 lineUserId: U1234567890abcdef1234567890abcdef
 lineToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 notificationTime: 09:00
@@ -44,10 +44,10 @@ notificationTime: 09:00
 
 | フィールド名 | 型       | 制約              | 説明                                   |
 | ------------ | -------- | ----------------- | -------------------------------------- |
-| id           | String   | PRIMARY KEY, CUID | Todoの一意識別子                       |
-| userId       | String   | FOREIGN KEY       | このTodoの所有ユーザーID               |
+| id           | Int      | PRIMARY KEY, AUTO INCR | Todoの一意識別子                       |
+| userId       | Int      | FOREIGN KEY       | このTodoの所有ユーザーID               |
 | title        | String   | NOT NULL          | Todoのタイトル（例：「レポート提出」） |
-| date         | Date     | NOT NULL          | このTodoを含める日付                   |
+| date         | DateTime | NOT NULL, @db.Date | このTodoを含める日付（日付のみ）       |
 | isCompleted  | Boolean  | DEFAULT: false    | 完了済みかどうかのフラグ               |
 | createdAt    | DateTime | DEFAULT: now()    | Todo作成日時                           |
 | updatedAt    | DateTime | AUTO UPDATE       | 最終更新日時                           |
@@ -62,13 +62,13 @@ notificationTime: 09:00
 
 **インデックス:**
 
-- `[scheduledTime, date]`: スケジューラー実行時の高速検索用
+- `[userId, date]`: ユーザーの本日のTodo一覧を高速検索
 
 **例:**
 
 ```
-id: cm456def...
-userId: cm123abc...
+id: 1
+userId: 1
 title: レポート提出
 date: 2026-01-20
 isCompleted: false
@@ -129,10 +129,4 @@ npx prisma generate
 
 # データベーススキーマ確認
 npx prisma studio
-```
-
-npx prisma studio
-
-```
-
 ```

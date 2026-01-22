@@ -23,76 +23,104 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+LineNotice アプリケーションのバックエンドAPIサーバー。
 
-## Project setup
+NestJS + Prisma + PostgreSQL を使用して構築されています。
 
-```bash
-$ npm install
-```
+## 機能
 
-## Compile and run the project
+- TodoのCRUD操作
+- ユーザー管理（現在は固定ユーザー）
+- データベース管理（Prisma）
 
-```bash
-# development
-$ npm run start
+詳細な実装内容は [docs/BACKEND_IMPLEMENTATION.md](./docs/BACKEND_IMPLEMENTATION.md) を参照してください。
 
-# watch mode
-$ npm run start:dev
+## セットアップ
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+### 1. 依存関係のインストール
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Deployment
+### 2. 環境変数の設定
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+`.env` ファイルを作成し、以下を設定してください：
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
+```
+
+### 3. データベースマイグレーション
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# マイグレーション実行
+npx prisma migrate dev
+
+# Prismaクライアント生成
+npx prisma generate
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 4. 開発サーバー起動
 
-## Resources
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+サーバーは `http://localhost:5000` で起動します。
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 開発コマンド
 
-## Support
+```bash
+# 開発モード（ウォッチモード）
+npm run start:dev
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# 本番モード
+npm run start:prod
 
-## Stay in touch
+# ビルド
+npm run build
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# テスト
+npm run test
+npm run test:e2e
+npm run test:cov
 
-## License
+# リント
+npm run lint
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# フォーマット
+npm run format
+```
+
+## API エンドポイント
+
+詳細は [docs/BACKEND_IMPLEMENTATION.md](./docs/BACKEND_IMPLEMENTATION.md) を参照してください。
+
+### Todo関連
+
+- `GET /todos` - すべてのTodoを取得
+- `POST /todos` - 新しいTodoを登録
+- `GET /todos/by-date?date=YYYY-MM-DD` - 指定日付のTodoを取得
+
+## データベース
+
+Prismaを使用してデータベースを管理しています。
+
+```bash
+# Prisma Studio（GUI）を起動
+npx prisma studio
+
+# マイグレーション作成
+npx prisma migrate dev --name migration_name
+
+# マイグレーション適用
+npx prisma migrate deploy
+```
+
+詳細は [docs/DATABASE_DESIGN.md](./docs/DATABASE_DESIGN.md) を参照してください。
+
+## 参考資料
+
+- [NestJS Documentation](https://docs.nestjs.com)
+- [Prisma Documentation](https://www.prisma.io/docs)
