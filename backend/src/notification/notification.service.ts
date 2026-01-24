@@ -29,27 +29,36 @@ export class NotificationService {
       throw new Error(`User ${userId} does not have LINE User ID`);
     }
 
-    // 本日の日付を取得
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD形式
+    // 本日の日付を取得（日本時間）
+    const now = new Date();
+    const todayString = this.getTodayString();
 
     // 本日のTodoを取得
     const todos = await this.todoService.findByDate(todayString);
 
     // メッセージを構築
-    const message = this.buildMessage(todos, today);
+    const message = this.buildMessage(todos, now);
 
     // LINEに送信
     await this.lineService.sendMessage(user.lineUserId, message);
   }
 
   /**
-   * 固定文字列をLINEに送信（テスト用）
-   * @param lineUserId LINE User ID
-   * @param message 送信するメッセージ
+   * 本日の日付を日本時間で取得（YYYY-MM-DD形式）
    */
-  async sendTestMessage(lineUserId: string, message: string): Promise<void> {
-    await this.lineService.sendMessage(lineUserId, message);
+  private getTodayString(): string {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(now);
+    const year = parts.find((p) => p.type === 'year')?.value;
+    const month = parts.find((p) => p.type === 'month')?.value;
+    const day = parts.find((p) => p.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
   }
 
   /**
@@ -66,7 +75,8 @@ export class NotificationService {
     let message = `📋 ${dateStr} のTodo一覧\n\n`;
 
     if (todos.length === 0) {
-      message += '本日のTodoはありません。\n素晴らしい一日をお過ごしください！✨';
+      message +=
+        '本日のTodoはありません。\n素晴らしい一日をお過ごしください！✨';
     } else {
       todos.forEach((todo, index) => {
         const status = todo.isCompleted ? '✅' : '⬜';

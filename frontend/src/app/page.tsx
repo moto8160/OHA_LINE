@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Todo } from '@/types/todo';
 import { TodoForm } from '@/components/TodoForm';
 import { TodoList } from '@/components/TodoList';
+import { LineNotificationButton } from '@/components/LineNotificationButton';
+import { todoApi } from '@/services/api';
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -21,10 +23,7 @@ export default function Home() {
 
   const fetchTodos = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/todos`);
-      console.log(response);
-      if (!response.ok) throw new Error('Failed to fetch todos');
-      const data = await response.json();
+      const data = await todoApi.fetchAll();
       setTodos(data);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -49,13 +48,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/todos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), date }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create todo');
+      await todoApi.create({ title: title.trim(), date });
 
       setSuccessMessage('Todoを登録しました！');
       setTitle('');
@@ -97,6 +90,15 @@ export default function Home() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">登録中のTodo</h2>
           <TodoList todos={todos} />
         </div>
+
+        <LineNotificationButton
+          userId={1}
+          onSuccess={(message) => {
+            setSuccessMessage(message);
+            setTimeout(() => setSuccessMessage(''), 3000);
+          }}
+          onError={(message) => setError(message)}
+        />
       </main>
     </div>
   );
