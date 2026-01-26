@@ -249,14 +249,19 @@ if (!user) {
   await prisma.user.create({
     data: {
       lineUserId: 'U1234567890abcdef',
-      name: '山田太郎',
+      lineDisplayName: '山田太郎',
+      linePictureUrl: 'https://profile.line-scdn.net/...',
+      lineToken: '',
     },
   });
 } else {
-  // 既存ユーザーの情報を更新
+  // 既存ユーザーの情報を更新（名前や画像は変更される可能性があるため）
   await prisma.user.update({
     where: { id: user.id },
-    data: { name: '山田太郎' },
+    data: {
+      lineDisplayName: '山田太郎',
+      linePictureUrl: 'https://profile.line-scdn.net/...',
+    },
   });
 }
 ```

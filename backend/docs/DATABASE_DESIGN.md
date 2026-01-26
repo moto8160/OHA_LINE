@@ -14,14 +14,16 @@ LineNoticeアプリケーションの最小限のデータベーススキーマ�
 
 LINE認証済みユーザーの情報を管理するテーブル。
 
-| フィールド名     | 型       | 制約                    | 説明                                       |
-| ---------------- | -------- | ----------------------- | ------------------------------------------ |
-| id               | Int      | PRIMARY KEY, AUTO INCR  | ユーザーの一意識別子                       |
-| lineUserId       | String   | UNIQUE, NOT NULL        | LINEプラットフォーム内のユーザーID         |
-| lineToken        | String   | NOT NULL                | LINEとのメッセージ送受信に使用するトークン |
-| notificationTime | String   | DEFAULT: "09:00"        | 毎日Todoを通知する時刻（HH:mm形式）        |
-| createdAt        | DateTime | DEFAULT: now()          | ユーザー作成日時                           |
-| updatedAt        | DateTime | AUTO UPDATE             | 最終更新日時                               |
+| フィールド名     | 型       | 制約                   | 説明                                       |
+| ---------------- | -------- | ---------------------- | ------------------------------------------ |
+| id               | Int      | PRIMARY KEY, AUTO INCR | ユーザーの一意識別子                       |
+| lineUserId       | String   | UNIQUE, NOT NULL       | LINEプラットフォーム内のユーザーID         |
+| lineDisplayName  | String   | NOT NULL               | LINEから取得した表示名                     |
+| linePictureUrl   | String   | NULLABLE               | LINEから取得したプロフィール画像URL        |
+| lineToken        | String   | NOT NULL               | LINEとのメッセージ送受信に使用するトークン |
+| notificationTime | String   | DEFAULT: "09:00"       | 毎日Todoを通知する時刻（HH:mm形式）        |
+| createdAt        | DateTime | DEFAULT: now()         | ユーザー作成日時                           |
+| updatedAt        | DateTime | AUTO UPDATE            | 最終更新日時                               |
 
 **リレーション:**
 
@@ -32,6 +34,8 @@ LINE認証済みユーザーの情報を管理するテーブル。
 ```
 id: 1
 lineUserId: U1234567890abcdef1234567890abcdef
+lineDisplayName: 山田太郎
+linePictureUrl: https://profile.line-scdn.net/0h...
 lineToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 notificationTime: 09:00
 ```
@@ -42,15 +46,15 @@ notificationTime: 09:00
 
 ユーザーが登録したTodo（日々のタスク）を管理するテーブル。
 
-| フィールド名 | 型       | 制約              | 説明                                   |
-| ------------ | -------- | ----------------- | -------------------------------------- |
+| フィールド名 | 型       | 制約                   | 説明                                   |
+| ------------ | -------- | ---------------------- | -------------------------------------- |
 | id           | Int      | PRIMARY KEY, AUTO INCR | Todoの一意識別子                       |
-| userId       | Int      | FOREIGN KEY       | このTodoの所有ユーザーID               |
-| title        | String   | NOT NULL          | Todoのタイトル（例：「レポート提出」） |
-| date         | DateTime | NOT NULL, @db.Date | このTodoを含める日付（日付のみ）       |
-| isCompleted  | Boolean  | DEFAULT: false    | 完了済みかどうかのフラグ               |
-| createdAt    | DateTime | DEFAULT: now()    | Todo作成日時                           |
-| updatedAt    | DateTime | AUTO UPDATE       | 最終更新日時                           |
+| userId       | Int      | FOREIGN KEY            | このTodoの所有ユーザーID               |
+| title        | String   | NOT NULL               | Todoのタイトル（例：「レポート提出」） |
+| date         | DateTime | NOT NULL, @db.Date     | このTodoを含める日付（日付のみ）       |
+| isCompleted  | Boolean  | DEFAULT: false         | 完了済みかどうかのフラグ               |
+| createdAt    | DateTime | DEFAULT: now()         | Todo作成日時                           |
+| updatedAt    | DateTime | AUTO UPDATE            | 最終更新日時                           |
 
 **リレーション:**
 
@@ -92,6 +96,10 @@ Todo には以下の関連を持つ:
 
 ### 1. Userテーブル
 
+DisplayName` : LINEから取得したユーザーの表示名（ログイン時に更新）
+
+- `linePictureUrl` : LINEから取得したプロフィール画像URL（オプション、ログイン時に更新）
+- `line
 - `lineUserId` は一意制約：1つのLINEアカウントは1ユーザーのみ
 - `lineToken` でLINEメッセージを送信
 - `notificationTime` : ユーザーが指定した毎日の通知時刻（朝の一定時刻）

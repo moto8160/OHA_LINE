@@ -1,12 +1,10 @@
-import { Todo } from '@/types/todo';
-
 interface TodoFormProps {
   title: string;
   date: string;
   loading: boolean;
   error: string;
   successMessage: string;
-  onTitleChange: (value: string) => void;
+  onTitleChange: (value: string) => void; //関数の引数と戻り値の型
   onDateChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -37,6 +35,7 @@ export function TodoForm({
         </div>
       )}
 
+      {/* 親の関数を呼び出している */}
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">

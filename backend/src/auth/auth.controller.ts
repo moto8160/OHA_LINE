@@ -2,6 +2,8 @@ import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LineAuthGuard } from './guards/line-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -31,18 +33,19 @@ export class AuthController {
     const { access_token } = await this.authService.generateToken(user.id);
 
     // フロントエンドにリダイレクトし、トークンをクエリパラメータで渡す
-    // const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    // res.redirect(`${frontendUrl}/auth/callback?token=${access_token}`);
-    console.log(access_token);
+    res.redirect(
+      `${process.env.FRONTEND_URL}/auth/callback?token=${access_token}`,
+    );
   }
 
   /**
-   * 現在のユーザー情報を取得（テスト用）
+   * 現在のユーザー情報を取得
    * GET /api/auth/me
    */
   @Get('me')
-  async getProfile(@Req() req: any) {
-    // このエンドポイントは後でJWT Guardで保護する
-    return req.user;
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@CurrentUser() user: any) {
+    // @CurrentUserで取得したユーザーオブジェクトをそのまま返す
+    return user;
   }
 }

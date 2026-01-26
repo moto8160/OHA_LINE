@@ -31,15 +31,17 @@ export class AuthService {
       user = await this.prisma.user.create({
         data: {
           lineUserId,
-          lineToken: '',
+          lineDisplayName: displayName,
+          linePictureUrl: pictureUrl
         },
       });
     } else {
-      // 既存ユーザーの場合は情報を更新
+      // 既存ユーザーの場合は情報を更新（名前や画像は変更される可能性があるため）
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
-          lineToken: '',
+          lineDisplayName: displayName,
+          linePictureUrl: pictureUrl,
         },
       });
     }

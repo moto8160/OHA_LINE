@@ -5,6 +5,7 @@ interface TodoListProps {
 }
 
 export function TodoList({ todos }: TodoListProps) {
+  // 日付ごとにTodoをグループ化
   const groupedTodos = todos.reduce(
     (acc, todo) => {
       const key = todo.date;
@@ -18,31 +19,14 @@ export function TodoList({ todos }: TodoListProps) {
   const sortedDates = Object.keys(groupedTodos).sort().reverse();
 
   const formatDate = (dateString: string) => {
-    // 日付文字列を正しくパースする
-    // バックエンドから返される形式: "2026-01-20T00:00:00.000Z" または "2026-01-20"
-    let date: Date;
-    
-    if (dateString.includes('T')) {
-      // 既にISO形式の場合はそのまま使用
-      date = new Date(dateString);
-    } else {
-      // YYYY-MM-DD形式の場合は時刻を追加
-      date = new Date(dateString + 'T00:00:00');
-    }
-    
-    // Invalid Dateチェック
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString);
-      return dateString; // フォールバック: 元の文字列を返す
-    }
-    
-    const options: Intl.DateTimeFormatOptions = {
+    const date = new Date(dateString);
+
+    return date.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       weekday: 'short',
-    };
-    return date.toLocaleDateString('ja-JP', options);
+    });
   };
 
   if (sortedDates.length === 0) {

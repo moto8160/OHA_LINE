@@ -16,7 +16,8 @@ datasource db {
 model User {
   id                 Int         @id @default(autoincrement())
   lineUserId         String      @unique
-  lineToken          String
+  lineDisplayName    String?
+  linePictureUrl     String?
   notificationTime   String      @default("09:00")
   todos              Todo[]
   createdAt          DateTime    @default(now())

@@ -1,5 +1,25 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
+// Cookieからトークンを取得
+function getAuthToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  const authCookie = cookies.find((cookie) => cookie.trim().startsWith('auth_token='));
+  return authCookie ? authCookie.split('=')[1] : null;
+}
+
+// 認証ヘッダーを含むヘッダーを生成
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export interface CreateTodoDto {
   title: string;
   date: string;
@@ -10,7 +30,9 @@ export const todoApi = {
    * 全てのTodoを取得
    */
   async fetchAll() {
-    const response = await fetch(`${API_BASE}/todos`);
+    const response = await fetch(`${API_BASE}/todos`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) throw new Error('Failed to fetch todos');
     return response.json();
   },
@@ -21,7 +43,7 @@ export const todoApi = {
   async create(dto: CreateTodoDto) {
     const response = await fetch(`${API_BASE}/todos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(dto),
     });
     if (!response.ok) throw new Error('Failed to create todo');
@@ -36,7 +58,7 @@ export const notificationApi = {
   async sendTodayTodos(userId: number) {
     const response = await fetch(`${API_BASE}/notifications/send/${userId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to send notification');
     return response.json();

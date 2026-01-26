@@ -10,13 +10,14 @@ interface LineNotificationButtonProps {
 }
 
 export function LineNotificationButton({
-  userId = 1,
+  userId,
   onSuccess,
   onError,
 }: LineNotificationButtonProps) {
   const [sending, setSending] = useState(false);
 
   const handleSendNotification = async () => {
+    if (!userId) return;
     setSending(true);
 
     try {
@@ -61,7 +62,7 @@ export function LineNotificationButton({
             送信中...
           </>
         ) : (
-          <>📱 本日のTodoをLINEに送信</>
+          <>📱 本日のTodoを試しに送信</>
         )}
       </button>
     </div>

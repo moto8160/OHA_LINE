@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 
-const FIXED_USER_ID = 1;
+const FIXED_USER_ID = 5;
 
 @Injectable()
 export class TodoService {

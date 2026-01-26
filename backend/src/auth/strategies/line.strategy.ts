@@ -57,7 +57,6 @@ export class LineStrategy extends PassportStrategy(Strategy, 'line') {
     }
 
     const profile = await response.json();
-    console.log(profile);
 
     // プロフィール情報を使ってユーザーを検証・登録
     const user = await this.authService.validateLineUser({
