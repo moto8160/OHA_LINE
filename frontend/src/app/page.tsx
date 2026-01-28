@@ -6,6 +6,7 @@ import { Todo } from '@/types/todo';
 import { TodoForm } from '@/components/TodoForm';
 import { TodoList } from '@/components/TodoList';
 import { LineNotificationButton } from '@/components/LineNotificationButton';
+import { AccountLinkButton } from '@/components/AccountLinkButton';
 import { todoApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -118,14 +119,21 @@ export default function Home() {
           <TodoList todos={todos} />
         </div>
 
-        <LineNotificationButton
-          userId={user?.id}
-          onSuccess={(message) => {
-            setSuccessMessage(message);
-            setTimeout(() => setSuccessMessage(''), 3000);
-          }}
-          onError={(message) => setError(message)}
-        />
+        <div className="mt-8 space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">LINEアカウント連携</h2>
+            <AccountLinkButton />
+          </div>
+
+          <LineNotificationButton
+            userId={user?.id}
+            onSuccess={(message) => {
+              setSuccessMessage(message);
+              setTimeout(() => setSuccessMessage(''), 3000);
+            }}
+            onError={(message) => setError(message)}
+          />
+        </div>
       </main>
     </div>
   );

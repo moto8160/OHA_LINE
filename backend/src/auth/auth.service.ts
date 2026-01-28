@@ -19,20 +19,20 @@ export class AuthService {
    * LINE認証後のユーザー検証・登録処理
    */
   async validateLineUser(profile: LineProfile) {
-    const { id: lineUserId, displayName, pictureUrl } = profile;
+    const { id: lineLoginId, displayName, pictureUrl } = profile;
 
     // ユーザーがDBに存在するか確認
     let user = await this.prisma.user.findUnique({
-      where: { lineUserId },
+      where: { lineLoginId },
     });
 
     // 存在しない場合は新規登録
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          lineUserId,
+          lineLoginId,
           lineDisplayName: displayName,
-          linePictureUrl: pictureUrl
+          linePictureUrl: pictureUrl,
         },
       });
     } else {

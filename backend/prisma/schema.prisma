@@ -14,14 +14,17 @@ datasource db {
 }
 
 model User {
-  id                 Int         @id @default(autoincrement())
-  lineUserId         String      @unique
-  lineDisplayName    String?
-  linePictureUrl     String?
-  notificationTime   String      @default("09:00")
-  todos              Todo[]
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id                    Int         @id @default(autoincrement())
+  lineLoginId           String      @unique  // LINE Login用ID（認証用）
+  lineMessagingId       String?     @unique  // LINE Bot用ID（メッセージ送信用）
+  lineDisplayName       String?
+  linePictureUrl        String?
+  linkToken             String?     @unique  // アカウント連携用トークン
+  linkTokenExpiresAt    DateTime?            // linkToken有効期限
+  notificationTime      String      @default("09:00")
+  todos                 Todo[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 }
 
 model Todo {

@@ -2,18 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 
-const FIXED_USER_ID = 5;
-
 @Injectable()
 export class TodoService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTodoDto: CreateTodoDto) {
+  async create(userId: number, createTodoDto: CreateTodoDto) {
     const { title, date } = createTodoDto;
 
     const todo = await this.prisma.todo.create({
       data: {
-        userId: FIXED_USER_ID,
+        userId,
         title,
         date: new Date(date),
       },
@@ -22,10 +20,10 @@ export class TodoService {
     return todo;
   }
 
-  async findAll() {
+  async findAll(userId: number) {
     const todos = await this.prisma.todo.findMany({
       where: {
-        userId: FIXED_USER_ID,
+        userId,
       },
       orderBy: {
         date: 'desc',
@@ -35,10 +33,10 @@ export class TodoService {
     return todos;
   }
 
-  async findByDate(date: string) {
+  async findByDate(userId: number, date: string) {
     const todos = await this.prisma.todo.findMany({
       where: {
-        userId: FIXED_USER_ID,
+        userId,
         date: {
           equals: new Date(date),
         },

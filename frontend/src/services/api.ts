@@ -55,12 +55,26 @@ export const notificationApi = {
   /**
    * 指定ユーザーに本日のTodoをLINE送信
    */
-  async sendTodayTodos(userId: number) {
-    const response = await fetch(`${API_BASE}/notifications/send/${userId}`, {
+  async sendTodayTodos() {
+    const response = await fetch(`${API_BASE}/notifications/send`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to send notification');
+    return response.json();
+  },
+};
+
+export const linkApi = {
+  /**
+   * アカウント連携トークンを生成
+   */
+  async generateLinkToken() {
+    const response = await fetch(`${API_BASE}/link/generate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to generate link token');
     return response.json();
   },
 };

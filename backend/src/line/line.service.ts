@@ -53,4 +53,32 @@ export class LineService {
       throw error;
     }
   }
+
+  /**
+   * アカウント連携ボタンを送信
+   * @param userId LINE User ID
+   * @param linkUrl 連携用URL
+   */
+  async sendAccountLinkButton(userId: string, linkUrl: string): Promise<void> {
+    try {
+      await this.lineClient.pushMessage(userId, {
+        type: 'template',
+        altText: 'アカウント連携',
+        template: {
+          type: 'buttons',
+          text: 'Webアプリとアカウントを連携してください',
+          actions: [
+            {
+              type: 'uri',
+              label: 'アカウント連携',
+              uri: linkUrl,
+            },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error('アカウント連携ボタン送信エラー:', error);
+      throw error;
+    }
+  }
 }

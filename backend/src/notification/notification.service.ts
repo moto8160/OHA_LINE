@@ -25,8 +25,10 @@ export class NotificationService {
       throw new Error(`User with id ${userId} not found`);
     }
 
-    if (!user.lineUserId) {
-      throw new Error(`User ${userId} does not have LINE User ID`);
+    if (!user.lineMessagingId) {
+      throw new Error(
+        `User ${userId} does not have LINE Messaging User ID. Please add the LINE bot as a friend.`,
+      );
     }
 
     // 本日の日付を取得（日本時間）
@@ -34,13 +36,13 @@ export class NotificationService {
     const todayString = this.getTodayString();
 
     // 本日のTodoを取得
-    const todos = await this.todoService.findByDate(todayString);
+    const todos = await this.todoService.findByDate(userId, todayString);
 
     // メッセージを構築
     const message = this.buildMessage(todos, now);
 
     // LINEに送信
-    await this.lineService.sendMessage(user.lineUserId, message);
+    await this.lineService.sendMessage(user.lineMessagingId, message);
   }
 
   /**
