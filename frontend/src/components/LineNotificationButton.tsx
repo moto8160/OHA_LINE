@@ -21,7 +21,7 @@ export function LineNotificationButton({
     setSending(true);
 
     try {
-      await notificationApi.sendTodayTodos(userId);
+      await notificationApi.sendTodayTodos();
       onSuccess?.('LINE通知を送信しました！');
     } catch (err) {
       onError?.(err instanceof Error ? err.message : 'LINE送信に失敗しました');
