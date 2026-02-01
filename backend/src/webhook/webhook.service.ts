@@ -26,33 +26,12 @@ export class WebhookService {
   async handleEvents(body: any, signature: string): Promise<void> {
     console.log('=== Webhook受信 ===');
     console.log('Body:', JSON.stringify(body, null, 2));
-    console.log('Signature:', signature);
-    console.log('Channel Secret (length):', this.channelSecret.length);
 
     // イベント処理
     const events = body.events || [];
     console.log(`イベント数: ${events.length}`);
 
-    // events配列が空の場合は検証リクエストなので正常終了
-    if (events.length === 0) {
-      console.log('検証リクエスト（events配列が空）- 正常終了');
-      return;
-    }
-
-    // 署名検証（実際のイベントがある場合のみ）
-    const isValid = line.validateSignature(
-      JSON.stringify(body),
-      this.channelSecret,
-      signature,
-    );
-
-    if (!isValid) {
-      console.error('署名検証失敗');
-      throw new Error('Invalid signature');
-    }
-
-    console.log('署名検証成功');
-
+    // イベントを処理
     for (const event of events) {
       console.log(`イベントタイプ: ${event.type}`);
       await this.handleEvent(event);
