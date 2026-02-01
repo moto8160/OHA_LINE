@@ -3,6 +3,7 @@
 export function AccountLinkButton() {
   const lineUrl = 'https://lin.ee/nIBIH71';
 
+  
   return (
     <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-lg">
       <h2 className="text-lg font-bold text-green-900 mb-4">LINE通知を受け取る</h2>
