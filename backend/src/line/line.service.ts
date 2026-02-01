@@ -4,19 +4,13 @@ import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class LineService {
-  private readonly channelAccessToken: string;
   private readonly lineClient: line.Client;
-  private readonly prisma: PrismaService;
 
-  constructor() {
-    this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-
-    if (!this.channelAccessToken) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not set');
-    }
-
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {
     this.lineClient = new line.Client({
-      channelAccessToken: this.channelAccessToken,
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
     });
   }
 
@@ -25,7 +19,7 @@ export class LineService {
    * @param userId LINE User ID
    * @param message 送信するメッセージ
    */
-  async sendMessage(userId: string, message: string): Promise<void> {
+  async sendMorningMessage(userId: string, message: string): Promise<void> {
     try {
       await this.lineClient.pushMessage(userId, {
         type: 'text',
@@ -37,69 +31,71 @@ export class LineService {
     }
   }
 
-  /**
-   * 複数メッセージを送信
-   * @param userId LINE User ID
-   * @param messages 送信するメッセージ配列
-   */
-  async sendMessages(userId: string, messages: string[]): Promise<void> {
-    try {
-      const messageObjects = messages.map((text) => ({
-        type: 'text' as const,
-        text: text,
-      }));
+  async handleEvent(event: any) {
+    // ユーザーLINEの送信先を取得
+    const lineMessagingId = event.source.userId;
 
-      await this.lineClient.pushMessage(userId, messageObjects);
-    } catch (error) {
-      console.error('LINE送信エラー:', error);
-      throw error;
+    // 友達追加
+    if (event.type === 'follow') {
+      await this.handleFollow(event);
+      return;
     }
-  }
 
-  /**
-   * アカウント連携ボタンを送信
-   * @param userId LINE User ID
-   * @param linkUrl 連携用URL
-   */
-  async sendAccountLinkButton(userId: string, linkUrl: string): Promise<void> {
-    try {
-      await this.lineClient.pushMessage(userId, {
-        type: 'template',
-        altText: 'アカウント連携',
-        template: {
-          type: 'buttons',
-          text: 'Webアプリとアカウントを連携してください',
-          actions: [
-            {
-              type: 'uri',
-              label: 'アカウント連携',
-              uri: linkUrl,
-            },
-          ],
-        },
-      });
-    } catch (error) {
-      console.error('アカウント連携ボタン送信エラー:', error);
-      throw error;
-    }
-  }
-
-  async handleEvent(event: any, lineLoginId: number) {
-    switch (event.type) {
-      case 'follow':
-        return this.handleFollow(event);
-
-      case 'unfollow':
-        return this.handleUnfollow(event);
-
-      default:
-        return;
+    // メッセージ受信
+    if (event.type === 'message' && event.message.type === 'text') {
+      await this.handleMessage(event);
+      return;
     }
   }
 
   private async handleFollow(event: any) {
     const lineMessagingId = event.source.userId;
-    console.log("lineMessagingId", lineMessagingId);
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        lineToken: { not: null },
+        lineMessagingId: null,
+      },
+    });
+
+    if (!user) return;
+
+    const message = `連携を完了するには、以下をそのまま送ってください👇
+
+                    LINK:${user.lineToken}`;
+
+    await this.sendMessage(lineMessagingId, message);
   }
-  private async handleUnfollow(event: any) {}
+
+  async handleMessage(event: any) {
+    const lineMessagingId = event.source.userId;
+    const text = event.message.text.trim();
+
+    // トークン有効チェック
+    if (!text.startsWith('LINK:')) return;
+    const lineToken = text.replace('LINK:', '').trim();
+
+    const user = await this.prisma.user.findUnique({
+      where: { lineToken },
+    });
+
+    if (!user) {
+      const message = '無効なトークンです。再度お試しください。';
+      await this.sendMessage(lineMessagingId, message);
+      return;
+    }
+
+    // LINE送信先IDを設定
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lineMessagingId, lineToken: null },
+    });
+  }
+
+  private async sendMessage(lineMessagingId: string, message: string) {
+    await this.lineClient.pushMessage(lineMessagingId, {
+      type: 'text',
+      text: message,
+    });
+  }
 }

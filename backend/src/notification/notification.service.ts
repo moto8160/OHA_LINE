@@ -42,7 +42,7 @@ export class NotificationService {
     const message = this.buildMessage(todos, now);
 
     // LINEに送信
-    await this.lineService.sendMessage(user.lineMessagingId, message);
+    await this.lineService.sendMorningMessage(user.lineMessagingId, message);
   }
 
   /**

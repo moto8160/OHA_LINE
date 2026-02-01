@@ -17,6 +17,7 @@ model User {
   id                    Int         @id @default(autoincrement())
   lineLoginId           String      @unique  // LINE Login用ID（認証用）
   lineMessagingId       String?     @unique  // LINE Bot用ID（メッセージ送信用）
+  lineToken             String?     @unique
   lineDisplayName       String?
   linePictureUrl        String?
   notificationTime      String      @default("09:00")

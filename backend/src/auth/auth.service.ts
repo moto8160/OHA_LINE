@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
+import { randomUUID } from 'crypto';
 
 export interface LineProfile {
   id: string;
@@ -33,6 +34,7 @@ export class AuthService {
           lineLoginId,
           lineDisplayName: displayName,
           linePictureUrl: pictureUrl,
+          lineToken: randomUUID(),
         },
       });
     } else {
