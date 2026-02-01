@@ -24,6 +24,9 @@ export class WebhookService {
    * Webhookイベントを処理
    */
   async handleEvents(body: any, signature: string): Promise<void> {
+    console.log('=== Webhook受信 ===');
+    console.log('Body:', JSON.stringify(body, null, 2));
+
     // 署名検証
     const isValid = line.validateSignature(
       JSON.stringify(body),
@@ -32,12 +35,18 @@ export class WebhookService {
     );
 
     if (!isValid) {
+      console.error('署名検証失敗');
       throw new Error('Invalid signature');
     }
 
+    console.log('署名検証成功');
+
     // イベント処理
     const events = body.events || [];
+    console.log(`イベント数: ${events.length}`);
+
     for (const event of events) {
+      console.log(`イベントタイプ: ${event.type}`);
       await this.handleEvent(event);
     }
   }
@@ -76,10 +85,18 @@ export class WebhookService {
    */
   private async handleFollowEvent(lineMessagingId: string): Promise<void> {
     try {
+      console.log(`=== Follow Event処理開始 ===`);
+      console.log(`lineMessagingId: ${lineMessagingId}`);
+
       // すでに連携済みかチェック
       const existingUser = await this.prisma.user.findFirst({
         where: { lineMessagingId },
       });
+
+      console.log(
+        `既存ユーザー検索結果:`,
+        existingUser ? `User ID: ${existingUser.id}` : 'なし',
+      );
 
       if (existingUser) {
         // すでに連携済み
@@ -92,9 +109,15 @@ export class WebhookService {
       }
 
       // lineLoginIdが一致するユーザーを検索（自動紐付け）
+      console.log(`lineLoginIdでユーザー検索: ${lineMessagingId}`);
       const userByLoginId = await this.prisma.user.findFirst({
         where: { lineLoginId: lineMessagingId },
       });
+
+      console.log(
+        `lineLoginId検索結果:`,
+        userByLoginId ? `User ID: ${userByLoginId.id}` : 'なし',
+      );
 
       if (userByLoginId) {
         // 自動的にlineMessagingIdを登録
@@ -109,17 +132,23 @@ export class WebhookService {
         );
 
         console.log(
-          `User ${userByLoginId.id} のlineMessagingIdを自動登録しました: ${lineMessagingId}`,
+          `✓ User ${userByLoginId.id} のlineMessagingIdを自動登録しました: ${lineMessagingId}`,
         );
       } else {
         // 該当ユーザーなし→案内メッセージ
+        console.log(`該当ユーザーなし。全ユーザーのlineLoginIdを確認:`);
+        const allUsers = await this.prisma.user.findMany({
+          select: { id: true, lineLoginId: true, lineMessagingId: true },
+        });
+        console.log('全ユーザー:', JSON.stringify(allUsers, null, 2));
+
         await this.lineService.sendMessage(
           lineMessagingId,
           '友達追加ありがとうございます！\n\n先にWebアプリでLINEログインしてから、もう一度友達追加してください。\n\nhttps://ohaline-production.vercel.app',
         );
 
         console.log(
-          `lineLoginId=${lineMessagingId}に一致するユーザーが見つかりません`,
+          `⚠ lineLoginId=${lineMessagingId}に一致するユーザーが見つかりません`,
         );
       }
     } catch (error) {
