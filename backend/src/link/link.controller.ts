@@ -30,8 +30,8 @@ export class LinkController {
   ) {
     const isValid = await this.linkService.verifyLinkToken(linkToken);
     const botUserId =
-      process.env.LINE_BOT_USER_ID || 'C0123456789abcdef0123456789abcde';
-    const botUrl = `https://line.me/R/bot/${botUserId}`;
+      process.env.LINE_BOT_USER_ID || 'Uc4fa7a4e99c3f69fdb51161c48313362';
+    const botUrl = `https://line.me/R/ti/p/~${botUserId}`;
 
     if (isValid) {
       const html = `
