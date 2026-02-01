@@ -72,7 +72,7 @@ export class WebhookService {
 
   /**
    * 友達追加時の処理
-   * アカウント連携がまだの場合は案内メッセージを送信
+   * lineLoginIdと一致するユーザーがいれば自動的にlineMessagingIdを登録
    */
   private async handleFollowEvent(lineMessagingId: string): Promise<void> {
     try {
@@ -85,17 +85,43 @@ export class WebhookService {
         // すでに連携済み
         await this.lineService.sendMessage(
           lineMessagingId,
-          '友達追加ありがとうございます！アカウント連携済みです。',
+          '友達追加ありがとうございます！\nアカウント連携済みです。Todo通知をお送りします。',
         );
-      } else {
-        // 連携案内メッセージを送信
-        await this.lineService.sendMessage(
-          lineMessagingId,
-          '友達追加ありがとうございます！\n\nWebアプリでログインした後、「アカウント連携」から連携を完了してください。',
-        );
+        console.log(`User ${existingUser.id} はすでに連携済み`);
+        return;
       }
 
-      console.log(`Follow event受信: ${lineMessagingId}`);
+      // lineLoginIdが一致するユーザーを検索（自動紐付け）
+      const userByLoginId = await this.prisma.user.findFirst({
+        where: { lineLoginId: lineMessagingId },
+      });
+
+      if (userByLoginId) {
+        // 自動的にlineMessagingIdを登録
+        await this.prisma.user.update({
+          where: { id: userByLoginId.id },
+          data: { lineMessagingId },
+        });
+
+        await this.lineService.sendMessage(
+          lineMessagingId,
+          '友達追加ありがとうございます！\nアカウント連携が完了しました🎉\n\nTodo通知を受け取れるようになりました。',
+        );
+
+        console.log(
+          `User ${userByLoginId.id} のlineMessagingIdを自動登録しました: ${lineMessagingId}`,
+        );
+      } else {
+        // 該当ユーザーなし→案内メッセージ
+        await this.lineService.sendMessage(
+          lineMessagingId,
+          '友達追加ありがとうございます！\n\n先にWebアプリでLINEログインしてから、もう一度友達追加してください。\n\nhttps://ohaline-production.vercel.app',
+        );
+
+        console.log(
+          `lineLoginId=${lineMessagingId}に一致するユーザーが見つかりません`,
+        );
+      }
     } catch (error) {
       console.error('Follow event処理エラー:', error);
     }
