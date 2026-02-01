@@ -1,24 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TodoController } from './todo/todo.controller';
-import { TodoService } from './todo/todo.service';
-import { PrismaService } from './prisma.service';
-import { NotificationModule } from './notification/notification.module';
+import { TodoModule } from './todo/todo.module';
 import { AuthModule } from './auth/auth.module';
-import { WebhookModule } from './webhook/webhook.module';
-import { LinkModule } from './link/link.module';
+import { NotificationModule } from './notification/notification.module';
+import { LineModule } from './line/line.module';
+import { PrismaService } from './prisma.service';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    NotificationModule,
-    AuthModule,
-    WebhookModule,
-    LinkModule,
-  ],
-  controllers: [TodoController],
-  providers: [TodoService, PrismaService],
+  imports: [TodoModule, AuthModule, NotificationModule, LineModule],
+  providers: [PrismaService],
 })
 export class AppModule {}

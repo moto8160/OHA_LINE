@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import * as line from '@line/bot-sdk';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class LineService {
   private readonly channelAccessToken: string;
   private readonly lineClient: line.Client;
+  private readonly prisma: PrismaService;
 
   constructor() {
     this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
@@ -81,4 +83,23 @@ export class LineService {
       throw error;
     }
   }
+
+  async handleEvent(event: any, lineLoginId: number) {
+    switch (event.type) {
+      case 'follow':
+        return this.handleFollow(event);
+
+      case 'unfollow':
+        return this.handleUnfollow(event);
+
+      default:
+        return;
+    }
+  }
+
+  private async handleFollow(event: any) {
+    const lineMessagingId = event.source.userId;
+    console.log("lineMessagingId", lineMessagingId);
+  }
+  private async handleUnfollow(event: any) {}
 }

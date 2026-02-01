@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { WebhookController } from './webhook.controller';
-import { WebhookService } from './webhook.service';
-import { PrismaService } from '../prisma.service';
-import { LinkService } from '../link/link.service';
-import { LineService } from '../line/line.service';
+// import { Module } from '@nestjs/common';
+// import { WebhookController } from './webhook.controller';
+// import { WebhookService } from './webhook.service';
+// import { PrismaService } from '../prisma.service';
+// import { LineModule } from '../line/line.module';
 
-@Module({
-  controllers: [WebhookController],
-  providers: [WebhookService, PrismaService, LinkService, LineService],
-})
-export class WebhookModule {}
+// @Module({
+//   imports: [LineModule],
+//   controllers: [WebhookController],
+//   providers: [WebhookService, PrismaService],
+// })
+// export class WebhookModule {}
