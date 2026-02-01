@@ -5,19 +5,21 @@ import { notificationApi } from '@/services/api';
 
 interface LineNotificationButtonProps {
   userId?: number;
+  isLinked?: boolean;
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
 }
 
 export function LineNotificationButton({
   userId,
+  isLinked = false,
   onSuccess,
   onError,
 }: LineNotificationButtonProps) {
   const [sending, setSending] = useState(false);
 
   const handleSendNotification = async () => {
-    if (!userId) return;
+    if (!userId || !isLinked) return;
     setSending(true);
 
     try {
@@ -30,13 +32,14 @@ export function LineNotificationButton({
     }
   };
 
-  
   return (
     <div className="mt-8">
       <button
         onClick={handleSendNotification}
-        disabled={sending}
-        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center"
+        disabled={sending || !isLinked}
+        className={`w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center ${
+          isLinked ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+        }`}
       >
         {sending ? (
           <>
@@ -62,10 +65,17 @@ export function LineNotificationButton({
             </svg>
             送信中...
           </>
+        ) : isLinked ? (
+          <>📱 本日のTodoを試しに送信</>
         ) : (
           <>📱 本日のTodoを試しに送信</>
         )}
       </button>
+      {!isLinked && (
+        <p className="text-xs text-gray-500 mt-3 text-center">
+          先にLINEの友だち追加を完了してください。
+        </p>
+      )}
     </div>
   );
 }

@@ -122,11 +122,12 @@ export default function Home() {
         <div className="mt-8 space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">LINEアカウント連携</h2>
-            <AccountLinkButton />
+            <AccountLinkButton isLinked={!!user?.lineMessagingId} lineToken={user?.lineToken} />
           </div>
 
           <LineNotificationButton
             userId={user?.id}
+            isLinked={!!user?.lineMessagingId}
             onSuccess={(message) => {
               setSuccessMessage(message);
               setTimeout(() => setSuccessMessage(''), 3000);

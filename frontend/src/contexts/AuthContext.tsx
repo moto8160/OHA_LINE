@@ -8,6 +8,8 @@ interface User {
   lineUserId: string;
   lineDisplayName: string;
   linePictureUrl?: string;
+  lineMessagingId?: string | null;
+  lineToken?: string | null;
 }
 
 interface AuthContextType {

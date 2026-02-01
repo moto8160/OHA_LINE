@@ -6,9 +6,7 @@ import { PrismaService } from 'src/prisma.service';
 export class LineService {
   private readonly lineClient: line.Client;
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {
+  constructor(private readonly prisma: PrismaService) {
     this.lineClient = new line.Client({
       channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
     });
@@ -48,20 +46,9 @@ export class LineService {
   private async handleFollow(event: any) {
     const lineMessagingId = event.source.userId;
 
-    const user = await this.prisma.user.findFirst({
-      where: {
-        lineToken: { not: null },
-        lineMessagingId: null,
-      },
-    });
-
-    if (!user) return;
-
-    const message = `連携を完了するには、以下をそのまま送ってください👇
-
-                    LINK:${user.lineToken}`;
-
-    await this.sendMessage(lineMessagingId, message);
+    const instructMessage =
+      '連携するには、WEBで表示されるトークンをこのチャットに送ってください。\n例: LINK:xxxxxxxx';
+    await this.sendMessage(lineMessagingId, instructMessage);
   }
 
   async handleMessage(event: any) {
@@ -87,6 +74,9 @@ export class LineService {
       where: { id: user.id },
       data: { lineMessagingId, lineToken: null },
     });
+
+    const message = '連携が完了しました。おはLINEに戻ってください。';
+    await this.sendMessage(lineMessagingId, message);
   }
 
   private async sendMessage(lineMessagingId: string, message: string) {
