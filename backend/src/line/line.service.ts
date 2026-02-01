@@ -32,9 +32,6 @@ export class LineService {
   }
 
   async handleEvent(event: any) {
-    // ユーザーLINEの送信先を取得
-    const lineMessagingId = event.source.userId;
-
     // 友達追加
     if (event.type === 'follow') {
       await this.handleFollow(event);

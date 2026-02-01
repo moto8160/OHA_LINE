@@ -17,6 +17,7 @@ export class LineController {
   @Post('webhook')
   async webhook(@Req() req: any) {
     for (const event of req.body.events) {
+      console.log(event);
       await this.lineService.handleEvent(event);
     }
   }
