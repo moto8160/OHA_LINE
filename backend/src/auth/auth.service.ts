@@ -75,4 +75,14 @@ export class AuthService {
 
     return user;
   }
+
+  /**
+   * 通知時刻を更新
+   */
+  async updateNotificationTime(userId: number, notificationTime: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { notificationTime },
+    });
+  }
 }

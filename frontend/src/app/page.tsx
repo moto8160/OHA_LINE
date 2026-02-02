@@ -7,6 +7,7 @@ import { TodoForm } from '@/components/TodoForm';
 import { TodoList } from '@/components/TodoList';
 import { LineNotificationButton } from '@/components/LineNotificationButton';
 import { AccountLinkButton } from '@/components/AccountLinkButton';
+import { NotificationTimeSettings } from '@/components/NotificationTimeSettings';
 import { todoApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -38,6 +39,7 @@ export default function Home() {
     }
   };
 
+  // Todo追加フォーム処理
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -73,6 +75,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ヘッダー */}
       <header className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
         <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
           <div>
@@ -103,6 +106,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        {/* Todo登録フォーム */}
         <TodoForm
           title={title}
           date={date}
@@ -114,17 +118,30 @@ export default function Home() {
           onSubmit={handleSubmit}
         />
 
+        {/* 登録中のTodo一覧 */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">登録中のTodo</h2>
           <TodoList todos={todos} />
         </div>
 
+        {/* LINE通知時間設定フォーム */}
         <div className="mt-8 space-y-6">
+          <NotificationTimeSettings
+            initialTime={user?.notificationTime}
+            onSuccess={(message) => {
+              setSuccessMessage(message);
+              setTimeout(() => setSuccessMessage(''), 3000);
+            }}
+            onError={(message) => setError(message)}
+          />
+
+          {/* LINE友達連携 */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">LINEアカウント連携</h2>
             <AccountLinkButton isLinked={!!user?.lineMessagingId} lineToken={user?.lineToken} />
           </div>
 
+          {/* LINE通知テスト送信 */}
           <LineNotificationButton
             userId={user?.id}
             isLinked={!!user?.lineMessagingId}

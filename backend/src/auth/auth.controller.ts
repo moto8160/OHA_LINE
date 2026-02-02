@@ -1,9 +1,18 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LineAuthGuard } from './guards/line-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { UpdateNotificationTimeDto } from './dto/update-notification-time.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -47,5 +56,26 @@ export class AuthController {
   async getProfile(@CurrentUser() user: any) {
     // @CurrentUserで取得したユーザーオブジェクトをそのまま返す
     return user;
+  }
+
+  /**
+   * LINE通知の時刻を更新
+   * PATCH /api/auth/notification-time
+   */
+  @Patch('notification-time')
+  @UseGuards(JwtAuthGuard)
+  async updateNotificationTime(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateNotificationTimeDto,
+  ) {
+    const updatedUser = await this.authService.updateNotificationTime(
+      user.id,
+      dto.notificationTime,
+    );
+
+    return {
+      success: true,
+      notificationTime: updatedUser.notificationTime,
+    };
   }
 }

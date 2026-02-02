@@ -10,6 +10,7 @@ interface User {
   linePictureUrl?: string;
   lineMessagingId?: string | null;
   lineToken?: string | null;
+  notificationTime?: string | null;
 }
 
 interface AuthContextType {

@@ -65,6 +65,21 @@ export const notificationApi = {
   },
 };
 
+export const profileApi = {
+  /**
+   * LINE通知の時刻を更新
+   */
+  async updateNotificationTime(notificationTime: string) {
+    const response = await fetch(`${API_BASE}/auth/notification-time`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ notificationTime }),
+    });
+    if (!response.ok) throw new Error('Failed to update notification time');
+    return response.json();
+  },
+};
+
 export const linkApi = {
   /**
    * アカウント連携トークンを生成
