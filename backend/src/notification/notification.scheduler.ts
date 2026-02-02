@@ -13,10 +13,10 @@ export class NotificationScheduler {
   ) {}
 
   /**
-   * 毎分0秒に実行されるcronジョブ
+   * 15分おきに実行されるcronジョブ
    * 日本時間で現在時刻と一致するユーザーに通知を送信
    */
-  @Cron('0 * * * * *', {
+  @Cron('0 */30 * * * *', {
     timeZone: 'Asia/Tokyo',
   })
   async handleScheduledNotifications() {
