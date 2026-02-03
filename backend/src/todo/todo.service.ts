@@ -48,4 +48,24 @@ export class TodoService {
 
     return todos;
   }
+
+  async delete(userId: number, todoId: number) {
+    // ユーザーが所有するTodoかどうかを確認
+    const todo = await this.prisma.todo.findUnique({
+      where: { id: todoId },
+    });
+
+    if (!todo) {
+      throw new Error('Todo not found');
+    }
+
+    if (todo.userId !== userId) {
+      throw new Error('Unauthorized to delete this todo');
+    }
+
+    // Todoを削除
+    return this.prisma.todo.delete({
+      where: { id: todoId },
+    });
+  }
 }

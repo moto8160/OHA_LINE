@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,5 +35,26 @@ export class TodoController {
       return { error: 'date query parameter is required' };
     }
     return this.todoService.findByDate(user.id, date);
+  }
+
+  @Delete(':id')
+  async delete(
+    @CurrentUser() user: any,
+    @Param('id', ParseIntPipe) todoId: number,
+  ) {
+    try {
+      const deletedTodo = await this.todoService.delete(user.id, todoId);
+      return {
+        success: true,
+        message: 'Todoを削除しました',
+        deletedTodo,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Todoの削除に失敗しました',
+      };
+    }
   }
 }

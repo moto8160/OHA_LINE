@@ -49,6 +49,18 @@ export const todoApi = {
     if (!response.ok) throw new Error('Failed to create todo');
     return response.json();
   },
+
+  /**
+   * Todoを削除
+   */
+  async delete(todoId: number) {
+    const response = await fetch(`${API_BASE}/todos/${todoId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete todo');
+    return response.json();
+  },
 };
 
 export const notificationApi = {

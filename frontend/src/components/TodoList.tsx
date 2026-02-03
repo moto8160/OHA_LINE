@@ -1,10 +1,25 @@
 import { Todo } from '@/types/todo';
+import { todoApi } from '@/services/api';
 
 interface TodoListProps {
   todos: Todo[];
+  onDelete?: (todoId: number) => Promise<void>;
 }
 
-export function TodoList({ todos }: TodoListProps) {
+export function TodoList({ todos, onDelete }: TodoListProps) {
+  const handleDelete = async (todoId: number) => {
+    if (!window.confirm('このTodoを削除してもよろしいですか？')) {
+      return;
+    }
+
+    try {
+      await todoApi.delete(todoId);
+      await onDelete?.(todoId);
+    } catch (error) {
+      alert('削除に失敗しました');
+      console.error(error);
+    }
+  };
   // 日付ごとにTodoをグループ化
   const groupedTodos = todos.reduce(
     (acc, todo) => {
@@ -71,6 +86,13 @@ export function TodoList({ todos }: TodoListProps) {
                     })}
                   </p>
                 </div>
+
+                <button
+                  onClick={() => handleDelete(todo.id)}
+                  className="flex-shrink-0 text-gray-500 hover:text-gray-700 text-sm font-medium"
+                >
+                  削除
+                </button>
               </div>
             ))}
           </div>

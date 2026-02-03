@@ -121,7 +121,12 @@ export default function Home() {
         {/* 登録中のTodo一覧 */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">登録中のTodo</h2>
-          <TodoList todos={todos} />
+          <TodoList
+            todos={todos}
+            onDelete={async () => {
+              await fetchTodos();
+            }}
+          />
         </div>
 
         {/* LINE通知時間設定フォーム */}
