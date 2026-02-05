@@ -33,12 +33,12 @@ export function LineNotificationButton({
   };
 
   return (
-    <div className="mt-8">
+    <div>
       <button
         onClick={handleSendNotification}
         disabled={sending || !isLinked}
-        className={`w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center ${
-          isLinked ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+        className={`w-full text-white font-semibold py-3.5 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center ${
+          isLinked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-300 cursor-not-allowed'
         }`}
       >
         {sending ? (
@@ -66,13 +66,13 @@ export function LineNotificationButton({
             送信中...
           </>
         ) : isLinked ? (
-          <>📱 本日のTodoを試しに送信</>
+          <>📱 明日のLINEを試しに送信</>
         ) : (
-          <>📱 本日のTodoを試しに送信</>
+          <>📱 明日のLINEを試しに送信</>
         )}
       </button>
       {!isLinked && (
-        <p className="text-xs text-gray-500 mt-3 text-center">
+        <p className="text-xs text-slate-500 mt-3 text-center">
           先にLINEの友だち追加を完了してください。
         </p>
       )}

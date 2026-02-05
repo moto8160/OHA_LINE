@@ -61,6 +61,19 @@ export const todoApi = {
     if (!response.ok) throw new Error('Failed to delete todo');
     return response.json();
   },
+
+  /**
+   * Todoの完了状態を更新
+   */
+  async updateStatus(todoId: number, isCompleted: boolean) {
+    const response = await fetch(`${API_BASE}/todos/${todoId}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ isCompleted }),
+    });
+    if (!response.ok) throw new Error('Failed to update todo status');
+    return response.json();
+  },
 };
 
 export const notificationApi = {

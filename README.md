@@ -1,10 +1,10 @@
-# LineNotice
+# おはLINE
 
 毎朝のTodo通知アプリケーション。指定した日付のTodoを登録し、朝の指定時刻にLINEメッセージで通知を受け取ることができます。
 
 ## プロジェクト概要
 
-LineNoticeは、以下の機能を提供するWebアプリケーションです：
+おはLINEは、以下の機能を提供するWebアプリケーションです：
 
 - **Todo管理**: 日付ごとにTodoを登録・管理
 - **LINE通知**（開発中）: 指定時刻に本日のTodo一覧をLINEで通知
@@ -14,12 +14,14 @@ LineNoticeは、以下の機能を提供するWebアプリケーションです�
 ## 技術スタック
 
 ### フロントエンド
+
 - **Next.js 16** (App Router)
 - **React 19**
 - **TypeScript**
 - **Tailwind CSS 4**
 
 ### バックエンド
+
 - **NestJS 11**
 - **Prisma 6**
 - **PostgreSQL 16** (Docker)
@@ -27,7 +29,7 @@ LineNoticeは、以下の機能を提供するWebアプリケーションです�
 ## プロジェクト構成
 
 ```
-LineNotice/
+おはLINE/
 ├── frontend/          # Next.js フロントエンド
 ├── backend/           # NestJS バックエンド
 ├── docker-compose.yml # PostgreSQL コンテナ設定
@@ -47,7 +49,7 @@ LineNotice/
 
 ```bash
 git clone <repository-url>
-cd LineNotice
+cd おはLINE
 ```
 
 ### 2. データベースの起動

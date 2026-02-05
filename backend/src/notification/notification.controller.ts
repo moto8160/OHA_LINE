@@ -8,24 +8,9 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  /**
-   * ログインユーザーの本日のTodoをLINE通知
-   * POST /notifications/send
-   */
+  // 手動LINE送信時（明日のLINEを送信）
   @Post('send')
   async sendNotification(@CurrentUser() user: any) {
-    try {
-      await this.notificationService.sendTodayTodos(user.id);
-      return {
-        success: true,
-        message: 'LINE通知を送信しました',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message:
-          error instanceof Error ? error.message : 'エラーが発生しました',
-      };
-    }
+    await this.notificationService.sendTodos(user.id, 'tomorrow');
   }
 }

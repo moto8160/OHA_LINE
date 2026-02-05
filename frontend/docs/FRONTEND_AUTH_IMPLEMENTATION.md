@@ -2,7 +2,7 @@
 
 ## 概要
 
-LineNoticeフロントエンドは、React Context APIを使用した認証システムを実装しています。LINE Login OAuth 2.0で取得したJWTトークンをCookieに保存し、アプリケーション全体で認証状態を管理します。
+おはLINEフロントエンドは、React Context APIを使用した認証システムを実装しています。LINE Login OAuth 2.0で取得したJWTトークンをCookieに保存し、アプリケーション全体で認証状態を管理します。
 
 ## 認証アーキテクチャ
 
@@ -361,7 +361,7 @@ export default function Home() {
   return (
     <div>
       <header>
-        <h1>LineNotice</h1>
+        <h1>おはLINE</h1>
 
         {/* ユーザー情報の表示 */}
         <div className="user-info">

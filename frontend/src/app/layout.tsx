@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'LineNotice',
+  title: 'おはLINE',
   description: '朝の通知で今日のTodoをお知らせ',
 };
 

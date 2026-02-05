@@ -2,7 +2,7 @@
 
 ## 概要
 
-このドキュメントでは、LineNoticeアプリケーションにLINE通知機能を実装する手順を説明します。
+このドキュメントでは、おはLINEアプリケーションにLINE通知機能を実装する手順を説明します。
 最初の実装では、時間指定による自動送信は行わず、ユーザーが手動でトリガーする方式とします。
 
 ## 実装手順
@@ -20,7 +20,7 @@
 1. プロバイダー選択後、「チャネルを作成」をクリック
 2. 「Messaging API」を選択
 3. チャネル情報を入力：
-   - チャネル名: `LineNotice`（任意）
+   - チャネル名: `おはLINE`（任意）
    - チャネル説明: 適宜入力
    - カテゴリ: アプリ
    - サブカテゴリ: その他
@@ -38,6 +38,7 @@
 
 今回は手動実行のみなので、Webhookは設定不要です。
 将来的に自動応答機能を追加する場合は、以下を設定：
+
 - Webhook URL: `https://your-domain.com/webhook`
 - Webhookの利用: 有効化
 
@@ -103,7 +104,7 @@ export class LineService {
 
   constructor() {
     this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-    
+
     if (!this.channelAccessToken) {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not set');
     }
@@ -215,7 +216,8 @@ export class NotificationService {
     let message = `📋 ${dateStr} のTodo一覧\n\n`;
 
     if (todos.length === 0) {
-      message += '本日のTodoはありません。\n素晴らしい一日をお過ごしください！✨';
+      message +=
+        '本日のTodoはありません。\n素晴らしい一日をお過ごしください！✨';
     } else {
       todos.forEach((todo, index) => {
         const status = todo.isCompleted ? '✅' : '⬜';
@@ -256,7 +258,8 @@ export class NotificationController {
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'エラーが発生しました',
+        message:
+          error instanceof Error ? error.message : 'エラーが発生しました',
       };
     }
   }
@@ -352,8 +355,8 @@ npx prisma studio
 または、直接SQLで更新：
 
 ```sql
-UPDATE "User" 
-SET "lineUserId" = '実際のLINE_USER_ID', 
+UPDATE "User"
+SET "lineUserId" = '実際のLINE_USER_ID',
     "lineToken" = '実際のCHANNEL_ACCESS_TOKEN'
 WHERE id = 1;
 ```
@@ -387,6 +390,7 @@ curl -X POST http://localhost:5000/notifications/send/1
 #### 7.3 レスポンス例
 
 成功時：
+
 ```json
 {
   "success": true,
@@ -395,6 +399,7 @@ curl -X POST http://localhost:5000/notifications/send/1
 ```
 
 エラー時：
+
 ```json
 {
   "success": false,

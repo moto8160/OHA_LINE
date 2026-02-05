@@ -2,7 +2,7 @@
 
 ## 概要
 
-LineNoticeバックエンドでは、Passport.jsとNestJsの認証機能を組み合わせて、以下の認証フローを実装しています：
+おはLINEバックエンドでは、Passport.jsとNestJsの認証機能を組み合わせて、以下の認証フローを実装しています：
 
 1. **LINE OAuth認証** - LINE Loginで本人確認
 2. **JWT トークン発行** - 認証情報をトークン化

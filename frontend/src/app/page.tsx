@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Todo } from '@/types/todo';
 import { TodoForm } from '@/components/TodoForm';
 import { TodoList } from '@/components/TodoList';
@@ -20,6 +21,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [previewStates, setPreviewStates] = useState<Record<number, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const incompleteTodos = todos.filter((todo) => !todo.isCompleted);
+  const completedTodos = todos.filter((todo) => todo.isCompleted);
+  const [showIncomplete, setShowIncomplete] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
     if (authLoading) return; //ログイン処理中の時なにもしない
@@ -73,31 +81,67 @@ export default function Home() {
     }
   };
 
+  const handleSaveChanges = async () => {
+    const changedIds = Object.keys(previewStates).map(Number);
+    if (changedIds.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      for (const todoId of changedIds) {
+        await todoApi.updateStatus(todoId, previewStates[todoId]);
+      }
+      setSuccessMessage('完了状態を更新しました！');
+      setPreviewStates({});
+      await fetchTodos();
+      setTimeout(() => setSuccessMessage(''), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新に失敗しました');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-emerald-50 pb-20">
       {/* ヘッダー */}
-      <header className="sticky top-0 bg-white border-b border-gray-200 shadow-sm z-10">
-        <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b border-white/60 shadow-sm">
+        <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">LineNotice</h1>
-            <p className="text-sm text-gray-600">毎朝のTodo通知</p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/mascot.png"
+                alt="おはLINE マスコット"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+                unoptimized
+                loader={({ src }) => src}
+              />
+              <div>
+                <h1 className="text-lg font-bold text-slate-900">おはLINE</h1>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-full px-3 py-1">
                 {user.linePictureUrl && (
-                  <img
+                  <Image
                     src={user.linePictureUrl}
                     alt={user.lineDisplayName}
-                    className="w-8 h-8 rounded-full"
+                    width={28}
+                    height={28}
+                    className="w-7 h-7 rounded-full"
+                    unoptimized
+                    loader={({ src }) => src}
                   />
                 )}
-                <span className="text-sm font-medium text-gray-700">{user.lineDisplayName}</span>
+                <span className="text-xs font-medium text-slate-700">{user.lineDisplayName}</span>
               </div>
             )}
             <button
               onClick={logout}
-              className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 rounded border border-gray-300 hover:border-gray-400"
+              className="text-xs text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-full border border-slate-300 hover:border-slate-400 bg-white"
             >
               ログアウト
             </button>
@@ -106,56 +150,124 @@ export default function Home() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Todo登録フォーム */}
-        <TodoForm
-          title={title}
-          date={date}
-          loading={loading}
-          error={error}
-          successMessage={successMessage}
-          onTitleChange={setTitle} //関数をpropsとして渡す
-          onDateChange={setDate}
-          onSubmit={handleSubmit}
-        />
+        <div className="space-y-6">
+          <section className="space-y-6">
+            {/* Todo登録フォーム */}
+            <TodoForm
+              title={title}
+              date={date}
+              loading={loading}
+              error={error}
+              successMessage={successMessage}
+              onTitleChange={setTitle} //関数をpropsとして渡す
+              onDateChange={setDate}
+              onSubmit={handleSubmit}
+            />
 
-        {/* 登録中のTodo一覧 */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">登録中のTodo</h2>
-          <TodoList
-            todos={todos}
-            onDelete={async () => {
-              await fetchTodos();
-            }}
-          />
-        </div>
+            {/* Todo一覧 */}
+            <div className="bg-white/90 border border-slate-200 rounded-2xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-slate-900">未完了のTodo</h2>
+                  <button
+                    onClick={() => setShowIncomplete(!showIncomplete)}
+                    className="text-sm text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100"
+                  >
+                    {showIncomplete ? '非表示' : '表示'}
+                  </button>
+                </div>
+                <span className="text-xs text-slate-500">{incompleteTodos.length} 件</span>
+              </div>
+              {showIncomplete && (
+                <>
+                  <TodoList
+                    todos={incompleteTodos}
+                    onDelete={async () => {
+                      await fetchTodos();
+                    }}
+                    previewStates={previewStates}
+                    onPreviewChange={setPreviewStates}
+                  />
+                  {Object.keys(previewStates).length > 0 && (
+                    <button
+                      onClick={handleSaveChanges}
+                      disabled={isSaving}
+                      className="mt-4 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      {isSaving ? '保存中...' : '✓ 完了状態を更新'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
 
-        {/* LINE通知時間設定フォーム */}
-        <div className="mt-8 space-y-6">
-          <NotificationTimeSettings
-            initialTime={user?.notificationTime}
-            onSuccess={(message) => {
-              setSuccessMessage(message);
-              setTimeout(() => setSuccessMessage(''), 3000);
-            }}
-            onError={(message) => setError(message)}
-          />
+            <div className="bg-white/90 border border-slate-200 rounded-2xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-slate-900">完了済みのTodo</h2>
+                  <button
+                    onClick={() => setShowCompleted(!showCompleted)}
+                    className="text-sm text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100"
+                  >
+                    {showCompleted ? '非表示' : '表示'}
+                  </button>
+                </div>
+                <span className="text-xs text-slate-500">{completedTodos.length} 件</span>
+              </div>
+              {showCompleted && (
+                <>
+                  <TodoList
+                    todos={completedTodos}
+                    onDelete={async () => {
+                      await fetchTodos();
+                    }}
+                    previewStates={previewStates}
+                    onPreviewChange={setPreviewStates}
+                  />
+                  {Object.keys(previewStates).length > 0 && (
+                    <button
+                      onClick={handleSaveChanges}
+                      disabled={isSaving}
+                      className="mt-4 w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      {isSaving ? '保存中...' : '✓ 完了状態を更新'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
 
-          {/* LINE友達連携 */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">LINEアカウント連携</h2>
-            <AccountLinkButton isLinked={!!user?.lineMessagingId} lineToken={user?.lineToken} />
-          </div>
+          <aside className="space-y-6">
+            {/* LINE通知時間設定フォーム */}
+            <NotificationTimeSettings
+              initialTime={user?.notificationTime}
+              onSuccess={(message) => {
+                setSuccessMessage(message);
+                setTimeout(() => setSuccessMessage(''), 3000);
+              }}
+              onError={(message) => setError(message)}
+            />
 
-          {/* LINE通知テスト送信 */}
-          <LineNotificationButton
-            userId={user?.id}
-            isLinked={!!user?.lineMessagingId}
-            onSuccess={(message) => {
-              setSuccessMessage(message);
-              setTimeout(() => setSuccessMessage(''), 3000);
-            }}
-            onError={(message) => setError(message)}
-          />
+            {/* LINE友達連携 */}
+            <div className="bg-white/90 border border-slate-200 rounded-2xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">LINE連携</h2>
+              <AccountLinkButton isLinked={!!user?.lineMessagingId} lineToken={user?.lineToken} />
+            </div>
+
+            {/* LINE通知テスト送信 */}
+            <div className="bg-white/90 border border-slate-200 rounded-2xl shadow-sm p-6">
+              <LineNotificationButton
+                userId={user?.id}
+                isLinked={!!user?.lineMessagingId}
+                onSuccess={(message) => {
+                  setSuccessMessage(message);
+                  setTimeout(() => setSuccessMessage(''), 3000);
+                }}
+                onError={(message) => setError(message)}
+              />
+            </div>
+          </aside>
         </div>
       </main>
     </div>

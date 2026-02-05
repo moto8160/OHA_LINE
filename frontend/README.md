@@ -1,6 +1,6 @@
-# LineNotice フロントエンド
+# おはLINE フロントエンド
 
-LineNotice アプリケーションのフロントエンド。Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS で構築されています。
+おはLINE アプリケーションのフロントエンド。Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS で構築されています。
 
 ## セットアップ
 

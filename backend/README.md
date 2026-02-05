@@ -23,7 +23,7 @@
 
 ## Description
 
-LineNotice アプリケーションのバックエンドAPIサーバー。
+おはLINE アプリケーションのバックエンドAPIサーバー。
 
 NestJS + Prisma + PostgreSQL を使用して構築されています。
 

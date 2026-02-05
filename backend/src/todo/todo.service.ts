@@ -68,4 +68,23 @@ export class TodoService {
       where: { id: todoId },
     });
   }
+
+  async updateStatus(userId: number, todoId: number, isCompleted: boolean) {
+    const todo = await this.prisma.todo.findUnique({
+      where: { id: todoId },
+    });
+
+    if (!todo) {
+      throw new Error('Todo not found');
+    }
+
+    if (todo.userId !== userId) {
+      throw new Error('Unauthorized to update this todo');
+    }
+
+    return this.prisma.todo.update({
+      where: { id: todoId },
+      data: { isCompleted },
+    });
+  }
 }

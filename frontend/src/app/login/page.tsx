@@ -10,7 +10,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 to-blue-50">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">LineNotice</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">おはLINE</h1>
           <p className="text-gray-600">毎朝のTodo通知</p>
         </div>
 

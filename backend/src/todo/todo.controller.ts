@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Delete,
+  Patch,
   Body,
   Query,
   Param,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
+import { UpdateTodoStatusDto } from './dto/update-todo-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -54,6 +56,32 @@ export class TodoController {
         success: false,
         message:
           error instanceof Error ? error.message : 'Todoの削除に失敗しました',
+      };
+    }
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @CurrentUser() user: any,
+    @Param('id', ParseIntPipe) todoId: number,
+    @Body() updateTodoStatusDto: UpdateTodoStatusDto,
+  ) {
+    try {
+      const updatedTodo = await this.todoService.updateStatus(
+        user.id,
+        todoId,
+        updateTodoStatusDto.isCompleted,
+      );
+      return {
+        success: true,
+        message: 'Todoの状態を更新しました',
+        updatedTodo,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Todoの更新に失敗しました',
       };
     }
   }

@@ -42,7 +42,7 @@ export class NotificationScheduler {
       // 各ユーザーに通知を送信
       for (const user of users) {
         try {
-          await this.notificationService.sendTodayTodos(user.id);
+          await this.notificationService.sendTodos(user.id, 'today');
           this.logger.log(
             `✅ ユーザー ${user.id} (${user.lineDisplayName}) に送信成功`,
           );

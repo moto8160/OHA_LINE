@@ -12,31 +12,26 @@ export class LineService {
     });
   }
 
-  /**
-   * LINEメッセージを送信
-   * @param userId LINE User ID
-   * @param message 送信するメッセージ
-   */
-  async sendMorningMessage(userId: string, message: string): Promise<void> {
+  async sendMessage(lineMessagingId: string, message: string) {
     try {
-      await this.lineClient.pushMessage(userId, {
+      await this.lineClient.pushMessage(lineMessagingId, {
         type: 'text',
         text: message,
       });
     } catch (error) {
       console.error('LINE送信エラー:', error);
-      throw error;
+      throw new Error('LINE通知に失敗しました');
     }
   }
 
   async handleEvent(event: any) {
-    // 友達追加
+    // 友達追加イベント
     if (event.type === 'follow') {
       await this.handleFollow(event);
       return;
     }
 
-    // メッセージ受信
+    // メッセージ受信イベント
     if (event.type === 'message' && event.message.type === 'text') {
       await this.handleMessage(event);
       return;
@@ -51,38 +46,37 @@ export class LineService {
     await this.sendMessage(lineMessagingId, instructMessage);
   }
 
-  async handleMessage(event: any) {
+  private async handleMessage(event: any) {
     const lineMessagingId = event.source.userId;
     const text = event.message.text.trim();
 
-    // トークン有効チェック
-    if (!text.startsWith('LINK:')) return;
-    const lineToken = text.replace('LINK:', '').trim();
+    // トークン受信時
+    if (text.startsWith('LINK:')) {
+      const lineToken = text.replace('LINK:', '').trim();
 
-    const user = await this.prisma.user.findUnique({
-      where: { lineToken },
-    });
+      const user = await this.prisma.user.findUnique({
+        where: { lineToken },
+      });
 
-    if (!user) {
-      const message = '無効なトークンです。再度お試しください。';
+      if (!user) {
+        const message = '無効なトークンです。再度お試しください。';
+        await this.sendMessage(lineMessagingId, message);
+        return;
+      }
+
+      // LINE送信先IDを設定
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lineMessagingId, lineToken: null },
+      });
+
+      const message = '連携が完了しました。おはLINEに戻ってください。';
       await this.sendMessage(lineMessagingId, message);
-      return;
+
+      // トークン以外の受信時
+    } else {
+      const message = 'メッセージは受け付けていません。機能追加をお楽しみに！';
+      await this.sendMessage(lineMessagingId, message);
     }
-
-    // LINE送信先IDを設定
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lineMessagingId, lineToken: null },
-    });
-
-    const message = '連携が完了しました。おはLINEに戻ってください。';
-    await this.sendMessage(lineMessagingId, message);
-  }
-
-  private async sendMessage(lineMessagingId: string, message: string) {
-    await this.lineClient.pushMessage(lineMessagingId, {
-      type: 'text',
-      text: message,
-    });
   }
 }
