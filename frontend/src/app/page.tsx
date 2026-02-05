@@ -105,7 +105,7 @@ export default function Home() {
     <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-emerald-50 pb-20">
       {/* ヘッダー */}
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b border-white/60 shadow-sm">
-        <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between">
+        <div className="max-w-md mx-auto px-4 py-1.5 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
               <Image

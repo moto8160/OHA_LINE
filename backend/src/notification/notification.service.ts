@@ -5,6 +5,7 @@ import { TodoService } from '../todo/todo.service';
 import { TRIVIA_DATA } from './trivia.constant';
 import { HOLIDAYS } from './holidays.constant';
 import { WEATHER_LOCATIONS } from './weather.constant';
+import { MOTIVATION_QUOTES } from './motivation.constant';
 
 @Injectable()
 export class NotificationService {
@@ -100,7 +101,6 @@ export class NotificationService {
       todos.forEach((todo, index) => {
         message += `${index + 1}. ${todo.title}\n`;
       });
-      message += `\n今日も一日頑張りましょう！💪`;
     }
 
     // 記念日を追加
@@ -119,6 +119,10 @@ export class NotificationService {
     const trivia = this.getRandomTrivia();
     message += `\n\n📚 今日の雑学\n${trivia}`;
 
+    // 今日のひとことを追加
+    const motivation = this.getRandomMotivation();
+    message += `\n\n💬 今日のひとこと\n${motivation}`;
+
     return message;
   }
 
@@ -128,6 +132,14 @@ export class NotificationService {
   private getRandomTrivia(): string {
     const randomIndex = Math.floor(Math.random() * TRIVIA_DATA.length);
     return TRIVIA_DATA[randomIndex];
+  }
+
+  /**
+   * ランダムに元気が出るひとことを選択
+   */
+  private getRandomMotivation(): string {
+    const randomIndex = Math.floor(Math.random() * MOTIVATION_QUOTES.length);
+    return MOTIVATION_QUOTES[randomIndex];
   }
 
   /**
