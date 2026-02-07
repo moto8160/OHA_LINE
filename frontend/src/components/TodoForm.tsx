@@ -68,7 +68,7 @@ export function TodoForm({
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-900"
+            className="block w-full max-w-full min-w-0 appearance-none px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white text-slate-900"
             style={{ colorScheme: 'light' }}
           />
         </div>
