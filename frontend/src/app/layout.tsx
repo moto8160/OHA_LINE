@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'おはLINE',
-  description: '朝の通知で今日のTodoをお知らせ',
+  description: '朝のLINE通知で今日のTodoをお知らせ',
 };
 
 export default function RootLayout({
@@ -25,6 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        <meta
+          name="google-site-verification"
+          content="IfeIhMJ9-MAVz8ccHHITVcxyga4d4BrqUxLZUubFms0"
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}>
         <AuthProvider>{children}</AuthProvider>
       </body>

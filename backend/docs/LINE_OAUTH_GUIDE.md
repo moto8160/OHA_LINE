@@ -33,7 +33,7 @@
      │ 1. ログインボタンをクリック    │                               │
      ├──────────────────────────────>│                               │
      │                               │                               │
-     │                               │ 2. /api/auth/line にアクセス  │
+    │                               │ 2. /auth/line にアクセス      │
      │                               ├──────────────────────────────>│
      │                               │                               │
      │                               │                               │
@@ -49,7 +49,7 @@
      │                                                               │
      │ 5. 認証成功（認証コード発行）                                 │
      │                                                               │
-     │ 6. /api/auth/line/callback にリダイレクト                    │
+    │ 6. /auth/line/callback にリダイレクト                        │
      ├──────────────────────────────────────────────────────────────>│
      │                                                               │
      │                                  7. LINEからユーザー情報取得  │
@@ -59,8 +59,8 @@
      │ 10. フロントエンドへリダイレクト（トークン付き）             │
      │<──────────────────────────────────────────────────────────────┤
      │                               │                               │
-     │                               │ 11. トークンを保存            │
-     │                               │ (localStorage)                │
+    │                               │ 11. トークンを保存            │
+    │                               │ (Cookie)                      │
      │                               │                               │
      │ 12. ログイン完了！             │                               │
      │<──────────────────────────────┤                               │
@@ -103,8 +103,8 @@
 **LINE Login**タブ → **Callback URL**
 
 ```
-開発環境: http://localhost:3001/api/auth/line/callback
-本番環境: https://yourdomain.com/api/auth/line/callback
+開発環境: http://localhost:5000/auth/line/callback
+本番環境: https://yourdomain.com/auth/line/callback
 ```
 
 ⚠️ 必ず両方とも登録してください。
@@ -117,11 +117,10 @@
 # LINE Login
 LINE_LOGIN_CHANNEL_ID=2006123456
 LINE_LOGIN_CHANNEL_SECRET=abcd1234efgh5678...
-LINE_LOGIN_CALLBACK_URL=http://localhost:3001/api/auth/line/callback
+LINE_LOGIN_CALLBACK_URL=http://localhost:5000/auth/line/callback
 
 # JWT（ランダムな文字列を生成）
 JWT_SECRET=your_super_secret_random_string_here_123456789
-JWT_EXPIRES_IN=7d
 
 # Frontend URL
 FRONTEND_URL=http://localhost:3000
@@ -147,7 +146,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 **内部処理**:
 
 ```
-フロントエンド → バックエンド（GET /api/auth/line）
+フロントエンド → バックエンド（GET /auth/line）
 ```
 
 **バックエンドの処理**:
@@ -162,7 +161,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 https://access.line.me/oauth2/v2.1/authorize?
   response_type=code&
   client_id=YOUR_CHANNEL_ID&
-  redirect_uri=http://localhost:3001/api/auth/line/callback&
+  redirect_uri=http://localhost:5000/auth/line/callback&
   state=RANDOM_STATE&
   scope=profile+openid
 ```
@@ -189,7 +188,7 @@ https://access.line.me/oauth2/v2.1/authorize?
 **内部処理**:
 
 ```
-LINE → バックエンド（GET /api/auth/line/callback?code=XXXXX）
+LINE → バックエンド（GET /auth/line/callback?code=XXXXX）
 ```
 
 **バックエンドの処理**:
@@ -204,7 +203,7 @@ POST https://api.line.me/oauth2/v2.1/token
 Body: {
   grant_type: 'authorization_code',
   code: 'XXXXX',  // LINEから受け取った認証コード
-  redirect_uri: 'http://localhost:3001/api/auth/line/callback',
+  redirect_uri: 'http://localhost:5000/auth/line/callback',
   client_id: 'YOUR_CHANNEL_ID',
   client_secret: 'YOUR_CHANNEL_SECRET'
 }
@@ -241,14 +240,14 @@ Headers: {
 ```typescript
 // 既存ユーザーを検索
 const user = await prisma.user.findUnique({
-  where: { lineUserId: 'U1234567890abcdef' },
+  where: { lineLoginId: 'U1234567890abcdef' },
 });
 
 if (!user) {
   // 新規登録
   await prisma.user.create({
     data: {
-      lineUserId: 'U1234567890abcdef',
+      lineLoginId: 'U1234567890abcdef',
       lineDisplayName: '山田太郎',
       linePictureUrl: 'https://profile.line-scdn.net/...',
       lineToken: '',
@@ -276,7 +275,7 @@ const payload = { sub: userId }; // sub = ユーザーID
 
 // トークン生成
 const token = jwt.sign(payload, JWT_SECRET, {
-  expiresIn: '7d',
+  expiresIn: '30d',
 });
 
 // 例: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTY...
@@ -293,15 +292,15 @@ res.redirect(`http://localhost:3000/auth/callback?token=${access_token}`);
 
 ### ステップ4: フロントエンドでトークンを保存
 
-**フロントエンドの処理** (今後実装):
+**フロントエンドの処理**:
 
 ```typescript
 // /auth/callback ページで
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 
-// トークンを保存
-localStorage.setItem('auth_token', token);
+// トークンをCookieに保存（30日）
+document.cookie = `auth_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
 
 // ホームページにリダイレクト
 router.push('/');
@@ -315,9 +314,12 @@ router.push('/');
 
 ```typescript
 // フロントエンド
-const token = localStorage.getItem('auth_token');
+const token = document.cookie
+  .split(';')
+  .find((cookie) => cookie.trim().startsWith('auth_token='))
+  ?.split('=')[1];
 
-fetch('http://localhost:3001/api/todos', {
+fetch('http://localhost:5000/todos', {
   headers: {
     Authorization: `Bearer ${token}`,
   },
@@ -407,11 +409,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 **エンドポイント一覧**:
 
-| メソッド | パス                      | 説明                     |
-| -------- | ------------------------- | ------------------------ |
-| GET      | `/api/auth/line`          | LINE認証を開始           |
-| GET      | `/api/auth/line/callback` | LINE認証のコールバック   |
-| GET      | `/api/auth/me`            | 現在のユーザー情報を取得 |
+| メソッド | パス                  | 説明                     |
+| -------- | --------------------- | ------------------------ |
+| GET      | `/auth/line`          | LINE認証を開始           |
+| GET      | `/auth/line/callback` | LINE認証のコールバック   |
+| GET      | `/auth/me`            | 現在のユーザー情報を取得 |
 
 ---
 
@@ -457,7 +459,7 @@ async getTodos(@CurrentUser() user: User) {}
 @Get('todos')
 @UseGuards(JwtAuthGuard)
 async getTodos(@CurrentUser() user: User) {
-  // user.id, user.name, user.lineUserId が使える
+  // user.id, user.name, user.lineLoginId が使える
 }
 ```
 
@@ -490,9 +492,9 @@ async getTodos(@CurrentUser() user: User) {
 **正しい例**:
 
 ```
-✅ http://localhost:3001/api/auth/line/callback
-❌ http://localhost:3001/api/auth/line/callback/  (末尾のスラッシュ)
-❌ https://localhost:3001/api/auth/line/callback  (httpsとhttp)
+✅ http://localhost:5000/auth/line/callback
+❌ http://localhost:5000/auth/line/callback/  (末尾のスラッシュ)
+❌ https://localhost:5000/auth/line/callback  (httpsとhttp)
 ```
 
 ---
@@ -505,7 +507,7 @@ async getTodos(@CurrentUser() user: User) {
 
 1. 再度ログインしてトークンを取得
 2. `JWT_SECRET`が正しいか確認
-3. トークンの有効期限を確認（デフォルト7日）
+3. トークンの有効期限を確認（デフォルト30日）
 
 ---
 

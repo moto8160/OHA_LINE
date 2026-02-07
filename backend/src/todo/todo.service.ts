@@ -87,4 +87,15 @@ export class TodoService {
       data: { isCompleted },
     });
   }
+
+  async deleteCompleted(userId: number) {
+    const result = await this.prisma.todo.deleteMany({
+      where: {
+        userId,
+        isCompleted: true,
+      },
+    });
+
+    return result.count;
+  }
 }

@@ -68,7 +68,7 @@ Context APIを使うと、中間コンポーネントを経由せずに直接デ
 ```tsx
 interface User {
   id: number;
-  lineUserId: string;
+  lineLoginId: string;
   lineDisplayName: string;
   linePictureUrl?: string;
 }
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ログイン処理
   const login = (token: string) => {
-    document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    document.cookie = `auth_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
     setIsAuthenticated(true);
   };
 
@@ -291,8 +291,8 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    // トークンをCookieに保存（7日間有効）
-    document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    // トークンをCookieに保存（30日間有効）
+    document.cookie = `auth_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
 
     // ホームページにリダイレクト
     router.push('/');
@@ -308,8 +308,11 @@ export default function AuthCallbackPage() {
 2. URLからトークンを取得
 3. Cookieにトークンを保存
    - `path=/` - 全ページで有効
-   - `max-age=604800` - 7日間有効（秒単位）
-   - `SameSite=Lax` - CSRF対策
+
+- `max-age=2592000` - 30日間有効（秒単位）
+- `SameSite=Lax` - CSRF対策
+- `Secure` - HTTPS環境でのみ送信
+
 4. ホームページ (`/`) にリダイレクト
 
 ### 3. 認証状態の初期化とユーザー情報取得
@@ -333,7 +336,7 @@ useEffect(() => {
 
 1. バックエンドの `/auth/me` にGETリクエスト
 2. JWTトークンを `Authorization: Bearer {token}` ヘッダーで送信
-3. ユーザー情報（id, lineUserId, lineDisplayName, linePictureUrl）を受け取る
+3. ユーザー情報（id, lineLoginId, lineDisplayName, linePictureUrl）を受け取る
 4. `setUser(userData)` で状態を更新
 5. トークンが無効な場合は自動的にログアウト
 
@@ -458,15 +461,16 @@ export const todoApi = {
 ### Cookieの設定
 
 ```tsx
-document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+document.cookie = `auth_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
 ```
 
 **パラメータの意味:**
 
 - `auth_token=${token}` - Cookie名と値
 - `path=/` - サイト全体で有効
-- `max-age=604800` - 7日間有効（秒単位）
+- `max-age=2592000` - 30日間有効（秒単位）
 - `SameSite=Lax` - 同一サイトからのみ送信（CSRF対策）
+- `Secure` - HTTPS環境でのみ送信
 
 ### Cookieの削除
 
@@ -521,17 +525,17 @@ SameSite = Lax;
 
 ### 3. HTTPSのみ（本番環境）
 
-本番環境では `Secure` フラグを追加すべきです:
+本番環境では `Secure` フラグを必ず付与します:
 
 ```tsx
 // 本番環境での推奨設定
-document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+document.cookie = `auth_token=${token}; path=/; max-age=2592000; SameSite=Lax; Secure`;
 ```
 
 ### 4. トークンの有効期限
 
-- Cookie: 7日間
-- JWT: 24時間（バックエンドで設定）
+- Cookie: 30日間
+- JWT: 30日間（バックエンドで設定）
 
 Cookieの有効期限が長くても、JWTの有効期限が切れていればAPIアクセスは拒否されます。
 
@@ -626,7 +630,7 @@ const { user } = useAuth();
 // user オブジェクトの内容:
 {
   id: 1,                                    // DB上のユーザーID
-  lineUserId: "U1234567890abcdef...",      // LINEのユーザーID
+  lineLoginId: "U1234567890abcdef...",     // LINE LoginのユーザーID
   lineDisplayName: "山田太郎",              // LINEの表示名
   linePictureUrl: "https://profile.line-scdn.net/..." // プロフィール画像URL（オプション）
 }

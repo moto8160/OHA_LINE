@@ -6,25 +6,27 @@
 
 おはLINEは、以下の機能を提供するWebアプリケーションです：
 
-- **Todo管理**: 日付ごとにTodoを登録・管理
-- **LINE通知**（開発中）: 指定時刻に本日のTodo一覧をLINEで通知
-- **天気予報**（予定）: 通知に天気情報を含める
-- **AIからの一言**（予定）: 通知に励ましのメッセージを含める
+- **Todo管理**: 日付ごとにTodoを登録・管理・完了状態を追跡
+- **LINE通知**（✅ 完了）: 指定時刻に本日のTodo一覧をLINEで通知
+- **天気予報**（✅ 完了）: 通知に天気情報を含める（5都市対応）
+- **励ましのメッセージ**（✅ 完了）: 通知に30種類の動機付けクォートを含める
 
 ## 技術スタック
 
 ### フロントエンド
 
-- **Next.js 16** (App Router)
+- **Next.js 14+** (App Router)
 - **React 19**
 - **TypeScript**
 - **Tailwind CSS 4**
+- **モバイルファースト設計**（最大幅: 28rem）
 
 ### バックエンド
 
 - **NestJS 11**
 - **Prisma 6**
 - **PostgreSQL 16** (Docker)
+- **NestJS Scheduler** (Cron: 毎分実行)
 
 ## プロジェクト構成
 
@@ -34,7 +36,8 @@
 ├── backend/           # NestJS バックエンド
 ├── docker-compose.yml # PostgreSQL コンテナ設定
 ├── PROJECT_ROADMAP.md # 開発ロードマップ
-└── DOCKER_SETUP.md    # Docker セットアップガイド
+├── DOCKER_SETUP.md    # Docker セットアップガイド
+└── README.md          # このファイル
 ```
 
 ## セットアップ手順
@@ -69,6 +72,7 @@ npm install
 # 環境変数の設定
 # .env ファイルを作成し、以下を設定:
 # DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
+# LINE_CHANNEL_ACCESS_TOKEN=your_token_here
 
 # Prismaマイグレーション実行
 npx prisma migrate dev
@@ -104,23 +108,39 @@ npm run dev
 
 ## 使用方法
 
+### Webアプリケーション
+
 1. ブラウザで `http://localhost:3000` にアクセス
-2. 「Todoの内容」と「日付」を入力してTodoを登録
-3. 登録したTodoが一覧に表示されます
+2. 「LINE ログイン」をクリック
+3. LINEアカウントで認証
+4. 「Todoの内容」と「日付」を入力してTodoを登録
+5. 登録したTodoが一覧に表示されます
+6. チェックボックスで完了状態を変更
+7. 「✓ 完了状態を更新」ボタンで一括保存
+
+### 自動通知設定
+
+1. プロフィール設定で通知時刻（HH:mm形式）を設定
+2. 設定した時刻に毎日自動でTodo通知を受け取ります
 
 ## API エンドポイント
 
+### 認証関連
+
+- `GET /auth/line` - LINE OAuth 開始
+- `GET /auth/line/callback` - LINE OAuth コールバック
+
 ### Todo関連
 
-- `GET /todos` - すべてのTodoを取得
+- `GET /todos` - すべてのTodoを取得（認証必須）
 - `POST /todos` - 新しいTodoを登録
-  ```json
-  {
-    "title": "レポート提出",
-    "date": "2026-01-20"
-  }
-  ```
-- `GET /todos/by-date?date=2026-01-20` - 指定日付のTodoを取得
+- `DELETE /todos/:id` - Todoを削除
+- `PATCH /todos/:id/status` - Todoの完了状態を更新
+- `DELETE /todos/completed` - 完了済みTodoを一括削除
+
+### 通知関連
+
+- `POST /notifications/send` - 翌日のTodo通知を手動送信
 
 詳細は [backend/docs/BACKEND_IMPLEMENTATION.md](./backend/docs/BACKEND_IMPLEMENTATION.md) を参照してください。
 
@@ -130,43 +150,62 @@ npm run dev
 
 ### 主要テーブル
 
-- **User**: LINE認証済みユーザー情報
-- **Todo**: ユーザーが登録したTodo
+- **User**: LINE認証済みユーザー情報（lineLoginId/lineMessagingId、ユーザー名、通知時刻）
+- **Todo**: ユーザーが登録したTodo（タイトル、日付、完了状態）
 
 ## 開発状況
 
-現在の実装状況は [PROJECT_ROADMAP.md](./PROJECT_ROADMAP.md) を参照してください。
+### 実装済み機能 ✅
 
-### 実装済み機能
+- ✅ Todo登録・削除・更新機能
+- ✅ Todo一覧表示機能（日付ごとグループ化）
+- ✅ 完了状態管理（チェックボックス、バッチ更新）
+- ✅ データベース設計・実装（Prisma + PostgreSQL）
+- ✅ LINE OAuth認証
+- ✅ LINE Messaging API統合
+- ✅ 自動通知スケジューラー（NestJS Scheduler、毎分実行）
+- ✅ メッセージコンテンツ拡張
+  - 本日のTodo一覧
+  - 天気情報（5都市: 東京、京都、大阪、札幌、福岡）
+  - トリビア（36種類）
+  - 祝日情報（97日付）
+  - 励ましのメッセージ（30種類のモチベーションクォート）
+- ✅ 日付フォーマット表示（月日のみ）
+- ✅ セッション延長（JWT: 30日、クッキー: 30日）
+- ✅ モバイル最適化UI（ペンギンマスコット、柔らかい色使い）
+- ✅ JSON解析エラーハンドリング
 
-- ✅ Todo登録機能
-- ✅ Todo一覧表示機能
-- ✅ データベース設計・実装
+### 今後の予定機能
 
-### 開発中・予定機能
-
-- 🚧 LINE通知機能（手動実行）
-  - 実装ガイド: [backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md](./backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md)
-  - フロントエンド実装: [frontend/docs/LINE_NOTIFICATION_FRONTEND.md](./frontend/docs/LINE_NOTIFICATION_FRONTEND.md)
-- 📅 天気予報統合
-- 🤖 AIからの一言機能
-- 📝 Todo編集・削除機能
-- ⏰ 自動スケジューラー（指定時刻に自動送信）
+- 📅 定期Todoの自動生成機能
+- 📊 Todo完了率の統計・グラフ表示
+- 🔔 通知カスタマイズ（曜日ごとの設定など）
+- 💾 データのエクスポート機能
+- 🌙 ダークモード対応
 
 ## 機能実装ガイド
 
-### LINE通知機能の実装
+### LINE通知機能の詳細
 
-LINE通知機能を実装する場合は、以下のドキュメントを参照してください：
+LINE通知機能の実装、トラブルシューティングは、以下のドキュメントを参照してください：
 
 - **バックエンド実装**: [backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md](./backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md)
 - **フロントエンド実装**: [frontend/docs/LINE_NOTIFICATION_FRONTEND.md](./frontend/docs/LINE_NOTIFICATION_FRONTEND.md)
+- **スケジューラー設計**: [backend/docs/SCHEDULER_IMPLEMENTATION.md](./backend/docs/SCHEDULER_IMPLEMENTATION.md)
+
+### 認証システム
+
+- **認証の詳細**: [backend/docs/AUTHENTICATION_DEEP_DIVE.md](./backend/docs/AUTHENTICATION_DEEP_DIVE.md)
+- **LINE OAuth**: [backend/docs/LINE_OAUTH_GUIDE.md](./backend/docs/LINE_OAUTH_GUIDE.md)
+- **LINE User ID**: [backend/docs/LINE_USER_ID_GUIDE.md](./backend/docs/LINE_USER_ID_GUIDE.md)
 
 ## トラブルシューティング
 
 ### Invalid Date エラー
 
 Todo一覧で「Invalid Date」が表示される場合、ブラウザのコンソールを確認してください。日付のパースエラーが発生している可能性があります。
+
+**解決策**: 日付フォーマットが `YYYY-MM-DD` であることを確認してください。
 
 ### データベース接続エラー
 
@@ -181,8 +220,45 @@ LINE通知が送信できない場合：
 1. LINE Developersコンソールでチャネルアクセストークンが正しく設定されているか確認
 2. 環境変数 `LINE_CHANNEL_ACCESS_TOKEN` が設定されているか確認
 3. LINE Botを友だち追加しているか確認
-4. バックエンドサーバーのログを確認
+4. バックエンドサーバーのログを確認（`npm run start:dev` の出力）
+
+詳細は [backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md](./backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md) を参照してください。
+
+### スケジューラーが動作しない
+
+スケジューラーが期待の時刻に実行されない場合：
+
+1. バックエンドが起動しているか確認
+2. `notificationTime` が正しく設定されているか確認（HH:mm形式）
+3. サーバーのタイムゾーンが Asia/Tokyo に設定されているか確認
+4. ログを確認: `[NotificationScheduler]` で始まるログを検索
+
+詳細は [backend/docs/SCHEDULER_IMPLEMENTATION.md](./backend/docs/SCHEDULER_IMPLEMENTATION.md) を参照してください。
+
+## セッション管理
+
+### JWT トークン
+
+- **有効期限**: 30日
+- **保存場所**: ブラウザクッキー
+- **フラグ**: `Secure` + `SameSite=Lax`
+
+### クッキー
+
+- **有効期限**: 30日
+- **フラグ**: `Secure` + `SameSite=Lax`
+
+詳細は [backend/docs/AUTHENTICATION_DEEP_DIVE.md](./backend/docs/AUTHENTICATION_DEEP_DIVE.md) を参照してください。
 
 ## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。
+
+## サポート
+
+問題が発生した場合は、以下を確認してください：
+
+1. [PROJECT_ROADMAP.md](./PROJECT_ROADMAP.md) で現在の実装状況を確認
+2. 対応するドキュメントで解決方法を検索
+3. バックエンドのコンソールログを確認
+4. ブラウザの開発者ツール（F12キー）でクライアント側のエラーを確認

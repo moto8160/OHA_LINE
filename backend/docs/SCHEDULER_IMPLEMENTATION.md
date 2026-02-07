@@ -86,7 +86,7 @@
 **何？**: 時間を指定するための記法  
 **記法例**:
 
-- `0 * * * * *` = 毎分0秒
+- `0 * * * * *` = 毎分0秒（実装中）
 - `0 9 * * *` = 毎日9:00（※NestJSは秒単位も指定可能）
 
 **例え**: 目覚まし時計の「時刻設定ダイヤル」
@@ -145,7 +145,7 @@ NestJSが公式に提供するスケジューリング機能です。内部的�
      ▼
 ┌──────────────────────────────────────┐
 │ NotificationScheduler                │
-│ @Cron('0 * * * * *')                 │  ← スケジューラー起動
+│ @Cron('0 * * * * *')                 │  ← スケジューラー起動（毎分0秒）
 └────┬─────────────────────────────────┘
      │
      ▼
@@ -168,7 +168,8 @@ NestJSが公式に提供するスケジューリング機能です。内部的�
      │
      ▼
 ┌──────────────────────────────────────┐
-│ 4. NotificationService.sendTodayTodos│
+│ 4. NotificationService.sendTodos()   │
+│    (userId, 'today')                  │
 │    - 本日のTodoを取得                 │
 │    - メッセージを生成                 │
 │    - LINE Messaging APIで送信         │
@@ -234,7 +235,7 @@ export class AppModule {}
 ```typescript
 // backend/src/notification/notification.scheduler.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { NotificationService } from './notification.service';
 
@@ -277,7 +278,8 @@ export class NotificationScheduler {
       // 各ユーザーに通知を送信
       for (const user of users) {
         try {
-          await this.notificationService.sendTodayTodos(user.id);
+          // 統一メソッドを使用：sendTodos(userId, 'today' | 'tomorrow')
+          await this.notificationService.sendTodos(user.id, 'today');
           this.logger.log(
             `✅ ユーザー ${user.id} (${user.lineDisplayName}) に送信成功`,
           );
@@ -318,10 +320,11 @@ export class NotificationScheduler {
 
 **重要ポイント**:
 
-- `@Cron('0 * * * * *')`: 毎分0秒に実行
+- `@Cron('0 * * * * *')`: **毎分0秒に実行**（30分ごとではなく）
 - `timeZone: 'Asia/Tokyo'`: 日本時間基準
 - `Logger`: コンソールにログを出力（デバッグに便利）
 - エラーハンドリング: 1人失敗しても他のユーザーへの送信は継続
+- `sendTodos(user.id, 'today')`: 統一メソッドを使用（今日のTodo用）
 
 ---
 
@@ -387,7 +390,7 @@ npm run start:dev
 
 **よく使う例**:
 
-- `0 * * * * *` = 毎分0秒
+- `0 * * * * *` = **毎分0秒**（現在の実装）
 - `0 0 9 * * *` = 毎日9:00
 - `0 30 8 * * 1-5` = 平日の8:30
 
@@ -415,7 +418,7 @@ const formatter = new Intl.DateTimeFormat('ja-JP', {
 ```typescript
 for (const user of users) {
   try {
-    await this.notificationService.sendTodayTodos(user.id);
+    await this.notificationService.sendTodos(user.id, 'today');
   } catch (error) {
     // 1人失敗しても続行
     this.logger.error(`ユーザー ${user.id} への送信失敗`, error);
@@ -481,7 +484,7 @@ imports: [
 
 ---
 
-### ❌ 「TypeError: Cannot read property 'sendTodayTodos'」
+### ❌ 「TypeError: Cannot read property 'sendTodos'」
 
 **原因**: `NotificationService`が注入されていない
 
@@ -514,12 +517,12 @@ providers: [
 
 ### ❌ 通知が重複送信される
 
-**原因**: 同じ分内に複数回実行されている
+**原因**: Cron式が不適切（秒の指定が複数）
 
 **解決策**: Cron式を確認。秒を`0`に固定。
 
 ```typescript
-@Cron('0 * * * * *') // ⭐ 秒は0のみ
+@Cron('0 * * * * *') // ⭐ 秒は0のみ（正確に毎分0秒に1回実行）
 ```
 
 ---
@@ -586,7 +589,7 @@ await this.prisma.user.update({
 await Promise.all(
   users.map(async (user) => {
     try {
-      await this.notificationService.sendTodayTodos(user.id);
+      await this.notificationService.sendTodos(user.id, 'today');
     } catch (error) {
       this.logger.error(`ユーザー ${user.id} への送信失敗`, error);
     }
@@ -612,16 +615,57 @@ where: {
 
 ---
 
+## 実装メソッドの統一
+
+### sendTodos() メソッド
+
+```typescript
+// 背景：以前は sendTodayTodos() と sendTomorrowTodos() に分かれていました
+// 現在：統一メソッド sendTodos(userId, 'today' | 'tomorrow') を使用
+
+// スケジューラーでの使用
+await this.notificationService.sendTodos(user.id, 'today');
+
+// 手動送信（明日のTodo）での使用
+await this.notificationService.sendTodos(user.id, 'tomorrow');
+```
+
+### メッセージ形式
+
+**重要**: メッセージヘッダーは常に「今日のTodo」と表示されます。
+
+- **今日のTodo送信時**: 実際の今日のTodoを送信
+- **明日のTodo送信時**: 実際の明日のTodoを送信ですが、メッセージ内では「今日のTodo」と表示（ユーザーが手動で「明日」のボタンを押した場合も同様）
+
+日付操作ロジック：
+
+```typescript
+private getDateString(isTomorrow: boolean): string {
+  const now = new Date();
+  if (isTomorrow) {
+    now.setDate(now.getDate() + 1); // 翌日を計算
+  }
+  // 日本のフォーマット：「月日」（例："2月7日"）
+  return new Intl.DateTimeFormat('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+  }).format(now);
+}
+```
+
+---
+
 ## まとめ
 
-| 項目               | 内容                                               |
-| ------------------ | -------------------------------------------------- |
-| **使用技術**       | NestJS Scheduler + Cron                            |
-| **実行タイミング** | 毎分0秒                                            |
-| **対象ユーザー**   | `notificationTime` が現在時刻と一致 & LINE連携済み |
-| **送信内容**       | 本日のTodo一覧                                     |
-| **エラー対応**     | 個別にキャッチ、全体は継続                         |
-| **ログ**           | 送信成功/失敗を記録                                |
+| 項目                | 内容                                               |
+| ------------------- | -------------------------------------------------- |
+| **使用技術**        | NestJS Scheduler + Cron                            |
+| **実行タイミング**  | **毎分0秒**（60回/時間）                           |
+| **対象ユーザー**    | `notificationTime` が現在時刻と一致 & LINE連携済み |
+| **送信内容**        | 本日のTodo + 天気 + トリビア + 祝日 + 励ましメッセ |
+| **エラー対応**      | 個別にキャッチ、全体は継続                         |
+| **ログ**            | 送信成功/失敗を記録                                |
+| **実装メソッド**    | `sendTodos(userId, 'today'｜'tomorrow')`           |
 
 ### 次のステップ
 
@@ -633,5 +677,6 @@ where: {
 
 ---
 
-**作成日**: 2026年2月2日  
-**対象バージョン**: NestJS v11, @nestjs/schedule v4
+**更新日**: 2026年2月2日  
+**対象バージョン**: NestJS v11, @nestjs/schedule v4  
+**注記**: ドキュメント更新により、以前のメソッド sendTodayTodos/sendTomorrowTodos は sendTodos に統一されました。

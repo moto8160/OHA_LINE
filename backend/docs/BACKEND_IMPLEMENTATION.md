@@ -1,170 +1,85 @@
 # バックエンド実装ガイド
 
-## 実装内容
+## 概要
 
-### ファイル構成
+おはLINEのバックエンドは、NestJS + Prisma + PostgreSQL で構成されています。LINE OAuth認証、Todo管理、LINE通知（自動/手動）を提供します。
 
-```
-backend/src/
-├── todo/
-│   ├── dto/
-│   │   └── create-todo.dto.ts
-│   ├── todo.controller.ts
-│   └── todo.service.ts
-├── user/
-│   └── user.service.ts
-├── app.module.ts
-├── prisma.service.ts
-└── main.ts
-```
+## 技術スタック
 
-## ユーザー固定値
+- NestJS 11
+- Prisma 6
+- PostgreSQL 16
+- @nestjs/schedule（Cron）
+- LINE Messaging API
+- Open-Meteo API（天気情報）
 
-`user.service.ts` で以下の固定値を定義しています：
+## 環境変数
 
-```typescript
-const FIXED_USER_ID = 1;
-const FIXED_USER = {
-  lineUserId: 'U1234567890abcdef1234567890abcdef',
-  lineToken: 'dummy_token_for_development',
-  notificationTime: '09:00',
-};
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
+JWT_SECRET=your_jwt_secret
+LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token
+FRONTEND_URL=http://localhost:3000
 ```
 
-- **FIXED_USER_ID**: 1（固定ユーザーID）
-- **lineUserId**: ダミーのLINE User ID
-- **lineToken**: 開発用ダミートークン
-- **notificationTime**: 09:00（朝9時に通知）
+## 認証エンドポイント
 
-## エンドポイント
+| Method | Path                    | 説明                    | 認証 |
+| ------ | ----------------------- | ----------------------- | ---- |
+| GET    | /auth/line              | LINE OAuth 開始         | 不要 |
+| GET    | /auth/line/callback     | LINE OAuth コールバック | 不要 |
+| GET    | /auth/me                | 現在のユーザー情報      | 必要 |
+| PATCH  | /auth/notification-time | 通知時刻の更新（HH:mm） | 必要 |
 
-### 1. Todo登録
+## Todoエンドポイント
 
-**POST** `/todos`
+| Method | Path                           | 説明                   | 認証 |
+| ------ | ------------------------------ | ---------------------- | ---- |
+| GET    | /todos                         | Todo一覧               | 必要 |
+| GET    | /todos/by-date?date=YYYY-MM-DD | 指定日のTodo           | 必要 |
+| POST   | /todos                         | Todo作成               | 必要 |
+| DELETE | /todos/:id                     | Todo削除               | 必要 |
+| PATCH  | /todos/:id/status              | 完了状態の更新         | 必要 |
+| DELETE | /todos/completed               | 完了済みTodoの一括削除 | 必要 |
 
-**リクエストボディ:**
+## 通知エンドポイント
 
-```json
-{
-  "title": "レポート提出",
-  "date": "2026-01-20"
-}
-```
+| Method | Path                | 説明                     | 認証 |
+| ------ | ------------------- | ------------------------ | ---- |
+| POST   | /notifications/send | 翌日のTodo通知を手動送信 | 必要 |
 
-**レスポンス:**
+## LINE Webhook
 
-```json
-{
-  "id": 1,
-  "userId": 1,
-  "title": "レポート提出",
-  "date": "2026-01-20",
-  "isCompleted": false,
-  "createdAt": "2026-01-19T10:30:00Z",
-  "updatedAt": "2026-01-19T10:30:00Z"
-}
-```
+| Method | Path          | 説明             | 認証 |
+| ------ | ------------- | ---------------- | ---- |
+| POST   | /line/webhook | LINEイベント受信 | 不要 |
 
-### 2. すべてのTodo取得
+## 通知ロジック
 
-**GET** `/todos`
+### sendTodos(userId, 'today' | 'tomorrow')
 
-**レスポンス:**
+- 指定ユーザーのTodoを取得
+- メッセージを組み立ててLINEへ送信
+- 送信時のヘッダーは常に「今日のTodo」
 
-```json
-[
-  {
-    "id": 1,
-    "userId": 1,
-    "title": "レポート提出",
-    "date": "2026-01-20",
-    "isCompleted": false,
-    "createdAt": "2026-01-19T10:30:00Z",
-    "updatedAt": "2026-01-19T10:30:00Z"
-  }
-]
-```
+### メッセージ内容
 
-### 3. 指定日付のTodo取得
+- 今日のTodo一覧
+- 天気情報（Open-Meteo / 5都市）
+- 祝日情報（該当日があれば追加）
+- 雑学（ランダム）
+- 励ましのひとこと（30種の固定クォート）
 
-**GET** `/todos/by-date?date=2026-01-20`
+## スケジューラー
 
-**レスポンス:**
+- Cron: `0 * * * * *`（毎分0秒）
+- タイムゾーン: `Asia/Tokyo`
+- `notificationTime` が現在時刻と一致するユーザーに送信
 
-```json
-[
-  {
-    "id": 1,
-    "userId": 1,
-    "title": "レポート提出",
-    "date": "2026-01-20",
-    "isCompleted": false,
-    "createdAt": "2026-01-19T10:30:00Z",
-    "updatedAt": "2026-01-19T10:30:00Z"
-  }
-]
-```
+詳細は [SCHEDULER_IMPLEMENTATION.md](./SCHEDULER_IMPLEMENTATION.md) を参照してください。
 
-## セットアップ手順
+## 参考資料
 
-### 1. Prismaマイグレーション実行
-
-```bash
-cd backend
-npx prisma migrate dev --name init_todo_schema
-```
-
-### 2. Prismaクライアント再生成
-
-```bash
-npx prisma generate
-```
-
-### 3. バックエンド起動
-
-```bash
-npm run start:dev
-```
-
-### 4. ユーザー初期化（初回のみ）
-
-TodoService の任意のメソッドを呼び出すと、自動的にユーザーが存在しなければ作成されます。
-
-または、別途初期化エンドポイントを追加することもできます：
-
-```bash
-POST /users/initialize
-```
-
-## テスト用コマンド
-
-### Todo登録
-
-```bash
-curl -X POST http://localhost:5000/todos \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "朝食を食べる",
-    "date": "2026-01-20"
-  }'
-```
-
-### すべてのTodo取得
-
-```bash
-curl http://localhost:5000/todos
-```
-
-### 指定日付のTodo取得
-
-```bash
-curl "http://localhost:5000/todos/by-date?date=2026-01-20"
-```
-
-## 次のステップ
-
-- [ ] Todo更新エンドポイント実装
-- [ ] Todo削除エンドポイント実装
-- [ ] Todo完了フラグ更新エンドポイント実装
-- [ ] スケジューラー実装（指定時刻にLINE通知）
-- [ ] LINE API連携（実際のメッセージ送信）
+- [LINE Messaging API](https://developers.line.biz/ja/docs/messaging-api/)
+- [Open-Meteo](https://open-meteo.com/)
+- [NestJS](https://docs.nestjs.com/)

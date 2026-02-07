@@ -39,6 +39,26 @@ export class TodoController {
     return this.todoService.findByDate(user.id, date);
   }
 
+  @Delete('completed')
+  async deleteCompleted(@CurrentUser() user: any) {
+    try {
+      const deletedCount = await this.todoService.deleteCompleted(user.id);
+      return {
+        success: true,
+        message: '完了済みTodoを削除しました',
+        deletedCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : '完了済みTodoの削除に失敗しました',
+      };
+    }
+  }
+
   @Delete(':id')
   async delete(
     @CurrentUser() user: any,

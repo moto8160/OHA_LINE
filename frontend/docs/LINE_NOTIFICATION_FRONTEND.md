@@ -1,176 +1,38 @@
-# フロントエンドからのLINE通知送信実装ガイド
+# フロントエンド LINE通知機能ガイド
 
 ## 概要
 
-このドキュメントでは、フロントエンドからLINE通知を送信する機能を追加する手順を説明します。
+フロントエンドでは、認証済みユーザーが「翌日のTodo通知」を手動で送信できるボタンを提供しています。
 
-## 実装手順
+- 対象コンポーネント: `LineNotificationButton`
+- 呼び出しAPI: `POST /notifications/send`
+- 認証: JWT（Cookie内のトークン）
 
-### ステップ1: 通知送信ボタンの追加
+## UI概要
 
-`frontend/src/app/page.tsx` に通知送信機能を追加します。
+- 送信ボタンをクリックすると、翌日のTodo通知がLINEに送信されます
+- 送信中はローディング表示
+- 送信成功/失敗のメッセージを表示
 
-#### 1.1 状態管理の追加
+## 実装箇所
 
-```typescript
-const [sendingNotification, setSendingNotification] = useState(false);
-const [notificationMessage, setNotificationMessage] = useState('');
-```
+- 画面: Home（`src/app/page.tsx`）
+- ボタン: `src/components/LineNotificationButton.tsx`
+- API: `src/services/api.ts`
 
-#### 1.2 通知送信関数の実装
+## 送信フロー
 
-```typescript
-const handleSendNotification = async () => {
-  setSendingNotification(true);
-  setNotificationMessage('');
-  setError('');
+1. ユーザーが「LINE通知テスト送信」ボタンをクリック
+2. `notificationApi.send()` が呼ばれる
+3. バックエンドで `sendTodos(userId, 'tomorrow')` を実行
+4. LINEに翌日のTodo通知が届く
 
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/notifications/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
+## 注意点
 
-    const data = await response.json();
+- LINE連携（`lineMessagingId`の登録）が済んでいない場合、送信は失敗します
+- トークン期限（30日）を過ぎた場合は再ログインが必要です
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || '通知の送信に失敗しました');
-    }
+## 関連ドキュメント
 
-    setNotificationMessage('LINE通知を送信しました！');
-    setTimeout(() => setNotificationMessage(''), 3000);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'エラーが発生しました');
-  } finally {
-    setSendingNotification(false);
-  }
-};
-```
-
-#### 1.3 UIコンポーネントの追加
-
-`TodoForm`の下に通知送信ボタンを追加：
-
-```typescript
-<div className="bg-white rounded-lg shadow-md p-6 mb-8">
-  <h2 className="text-lg font-semibold text-gray-900 mb-4">LINE通知</h2>
-  
-  {notificationMessage && (
-    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-      <p className="text-sm text-green-700">{notificationMessage}</p>
-    </div>
-  )}
-
-  <button
-    onClick={handleSendNotification}
-    disabled={sendingNotification}
-    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors"
-  >
-    {sendingNotification ? '送信中...' : '📱 本日のTodoをLINEに送信'}
-  </button>
-</div>
-```
-
-### ステップ2: 通知コンポーネントの作成（オプション）
-
-より再利用可能にするため、専用コンポーネントを作成することもできます。
-
-**`frontend/src/components/NotificationButton.tsx`** を作成：
-
-```typescript
-'use client';
-
-import { useState } from 'react';
-
-interface NotificationButtonProps {
-  apiBase: string;
-}
-
-export function NotificationButton({ apiBase }: NotificationButtonProps) {
-  const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSend = async () => {
-    setSending(true);
-    setMessage('');
-    setError('');
-
-    try {
-      const response = await fetch(`${apiBase}/notifications/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || '通知の送信に失敗しました');
-      }
-
-      setMessage('LINE通知を送信しました！');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">LINE通知</h2>
-      
-      {message && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-700">{message}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
-
-      <button
-        onClick={handleSend}
-        disabled={sending}
-        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors"
-      >
-        {sending ? '送信中...' : '📱 本日のTodoをLINEに送信'}
-      </button>
-    </div>
-  );
-}
-```
-
-**`frontend/src/app/page.tsx`** で使用：
-
-```typescript
-import { NotificationButton } from '@/components/NotificationButton';
-
-// ... 既存のコード ...
-
-<NotificationButton apiBase={process.env.NEXT_PUBLIC_API_BASE || ''} />
-```
-
-## 動作確認
-
-1. フロントエンドサーバーを起動：
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-2. ブラウザで `http://localhost:3000` にアクセス
-
-3. 「📱 本日のTodoをLINEに送信」ボタンをクリック
-
-4. LINEアプリで通知が届くことを確認
-
-## 注意事項
-
-- LINE Botを友だち追加していない場合、通知は送信できません
-- バックエンドサーバーが起動している必要があります
-- 環境変数 `NEXT_PUBLIC_API_BASE` が正しく設定されている必要があります
+- [LINE通知機能実装ガイド](../../backend/docs/LINE_NOTIFICATION_IMPLEMENTATION.md)
+- [スケジューラー実装ガイド](../../backend/docs/SCHEDULER_IMPLEMENTATION.md)

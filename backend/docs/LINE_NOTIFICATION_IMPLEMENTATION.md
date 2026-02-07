@@ -3,7 +3,14 @@
 ## 概要
 
 このドキュメントでは、おはLINEアプリケーションにLINE通知機能を実装する手順を説明します。
-最初の実装では、時間指定による自動送信は行わず、ユーザーが手動でトリガーする方式とします。
+当アプリケーションでは、自動スケジューラーと手動トリガーの両方の方式で通知を送信できます。
+
+**更新情報**:
+
+- ✅ 自動スケジューラーで毎日指定時刻に本日のTodoを送信
+- ✅ 手動ボタンで翌日のTodoを即座に送信
+- ✅ 天気情報、トリビア、祝日、励ましメッセージを含む
+- ✅ 統一メソッド `sendTodos(userId, 'today'|'tomorrow')` で管理
 
 ## 実装手順
 
@@ -34,12 +41,11 @@
 
 **重要**: このトークンは一度しか表示されないため、必ず保存してください。
 
-#### 1.4 Webhook URLの設定（オプション）
+#### 1.4 Webhook URLの設定
 
-今回は手動実行のみなので、Webhookは設定不要です。
-将来的に自動応答機能を追加する場合は、以下を設定：
+**現在の実装**: LINE連携（トークン送信）にWebhookが必要です。
 
-- Webhook URL: `https://your-domain.com/webhook`
+- Webhook URL: `https://your-domain.com/line/webhook`
 - Webhookの利用: 有効化
 
 #### 1.5 友だち追加用QRコードの取得
@@ -54,12 +60,11 @@
 
 ```bash
 cd backend
-npm install @line/bot-sdk axios
+npm install @line/bot-sdk
 npm install --save-dev @types/node
 ```
 
 - `@line/bot-sdk`: LINE Messaging APIの公式SDK
-- `axios`: HTTPリクエスト用（LINE API呼び出しに使用）
 
 ### ステップ3: 環境変数の設定
 
@@ -68,6 +73,9 @@ npm install --save-dev @types/node
 ```env
 # LINE Messaging API
 LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token_here
+
+# データベース接続
+DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
 ```
 
 **注意**: `.env` ファイルは `.gitignore` に含まれていることを確認してください。
@@ -76,41 +84,40 @@ LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token_here
 
 #### 4.1 ファイル構成
 
-以下のファイルを作成します：
-
 ```
 backend/src/
 ├── line/
 │   ├── line.service.ts      # LINE API呼び出しサービス
-│   └── line.module.ts        # LINEモジュール（オプション）
-└── notification/
-    ├── notification.service.ts  # 通知ロジック
-    └── notification.controller.ts  # 手動実行用エンドポイント
+│   ├── line.module.ts       # LINEモジュール
+│   └── line.controller.ts   # 検証エンドポイント
+├── notification/
+│   ├── notification.service.ts      # 通知ロジック（統一メソッド）
+│   ├── notification.controller.ts   # 手動送信エンドポイント
+│   ├── notification.scheduler.ts    # 自動スケジューラー
+│   └── notification.module.ts       # モジュール定義
+│   ├── weather.constant.ts    # 天気情報（5都市）
+│   ├── trivia.constant.ts     # トリビア（36個）
+│   ├── holidays.constant.ts   # 祝日（97日付）
+│   └── motivation.constant.ts # 励ましメッセージ（30個）
+└── prisma.service.ts
 ```
 
 #### 4.2 LINEサービスの実装
 
-**`backend/src/line/line.service.ts`** を作成：
+**`backend/src/line/line.service.ts`**:
 
 ```typescript
 import { Injectable } from '@nestjs/common';
 import * as line from '@line/bot-sdk';
-import axios from 'axios';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class LineService {
-  private readonly channelAccessToken: string;
   private readonly lineClient: line.Client;
 
-  constructor() {
-    this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-
-    if (!this.channelAccessToken) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not set');
-    }
-
+  constructor(private readonly prisma: PrismaService) {
     this.lineClient = new line.Client({
-      channelAccessToken: this.channelAccessToken,
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
     });
   }
 
@@ -119,51 +126,37 @@ export class LineService {
    * @param userId LINE User ID
    * @param message 送信するメッセージ
    */
-  async sendMessage(userId: string, message: string): Promise<void> {
-    try {
-      await this.lineClient.pushMessage(userId, {
-        type: 'text',
-        text: message,
-      });
-    } catch (error) {
-      console.error('LINE送信エラー:', error);
-      throw error;
-    }
+  async sendMessage(lineMessagingId: string, message: string) {
+    await this.lineClient.pushMessage(lineMessagingId, {
+      type: 'text',
+      text: message,
+    });
   }
 
-  /**
-   * 複数メッセージを送信
-   * @param userId LINE User ID
-   * @param messages 送信するメッセージ配列
-   */
-  async sendMessages(userId: string, messages: string[]): Promise<void> {
-    try {
-      const messageObjects = messages.map((text) => ({
-        type: 'text' as const,
-        text: text,
-      }));
-
-      await this.lineClient.pushMessage(userId, messageObjects);
-    } catch (error) {
-      console.error('LINE送信エラー:', error);
-      throw error;
-    }
+  async handleEvent(event: any) {
+    // follow / messageイベントを処理
   }
 }
 ```
 
-#### 4.3 通知サービスの実装
+#### 4.3 通知サービスの実装（統一メソッド）
 
-**`backend/src/notification/notification.service.ts`** を作成：
+**`backend/src/notification/notification.service.ts`** (主要部分):
 
 ```typescript
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LineService } from '../line/line.service';
 import { TodoService } from '../todo/todo.service';
+import { TRIVIA_DATA } from './trivia.constant';
+import { HOLIDAYS } from './holidays.constant';
+import { WEATHER_LOCATIONS } from './weather.constant';
+import { MOTIVATION_QUOTES } from './motivation.constant';
 
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly lineService: LineService,
@@ -171,10 +164,14 @@ export class NotificationService {
   ) {}
 
   /**
-   * 指定ユーザーの本日のTodoを取得してLINE通知を送信
+   * Todoを送信（統一メソッド）
    * @param userId ユーザーID
+   * @param type 'today' または 'tomorrow'
    */
-  async sendTodayTodos(userId: number): Promise<void> {
+  async sendTodos(
+    userId: number,
+    type: 'today' | 'tomorrow' = 'today',
+  ): Promise<void> {
     // ユーザー情報を取得
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -184,28 +181,32 @@ export class NotificationService {
       throw new Error(`User with id ${userId} not found`);
     }
 
-    if (!user.lineUserId || !user.lineToken) {
+    if (!user.lineMessagingId) {
       throw new Error(`User ${userId} does not have LINE credentials`);
     }
 
-    // 本日の日付を取得
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD形式
+    // 日付を計算
+    const isTomorrow = type === 'tomorrow';
+    const dateString = this.getDateString(isTomorrow);
+    const date = new Date();
+    if (isTomorrow) {
+      date.setDate(date.getDate() + 1);
+    }
 
-    // 本日のTodoを取得
-    const todos = await this.todoService.findByDate(todayString);
+    // 該当日付のTodoを取得
+    const todos = await this.todoService.findByDate(dateString);
 
     // メッセージを構築
-    const message = this.buildMessage(todos, today);
+    const message = this.buildMessage(todos, date);
 
     // LINEに送信
-    await this.lineService.sendMessage(user.lineUserId, message);
+    await this.lineService.sendMessage(user.lineMessagingId, message);
   }
 
   /**
-   * メッセージを構築
+   * メッセージを構築（天気・トリビア・祝日・励ましメッセージ含）
    */
-  private buildMessage(todos: any[], date: Date): string {
+  private async buildMessage(todos: any[], date: Date): Promise<string> {
     const dateStr = date.toLocaleDateString('ja-JP', {
       year: 'numeric',
       month: 'long',
@@ -213,30 +214,80 @@ export class NotificationService {
       weekday: 'short',
     });
 
-    let message = `📋 ${dateStr} のTodo一覧\n\n`;
+    let message = `📋 ${dateStr} \n\n`;
+    message += `📝 今日のTodo\n`;
 
     if (todos.length === 0) {
-      message +=
-        '本日のTodoはありません。\n素晴らしい一日をお過ごしください！✨';
+      message += 'Todoはありません🎉';
     } else {
       todos.forEach((todo, index) => {
-        const status = todo.isCompleted ? '✅' : '⬜';
-        message += `${status} ${index + 1}. ${todo.title}\n`;
+        message += `${index + 1}. ${todo.title}\n`;
       });
-      message += '\n今日も頑張りましょう！💪';
     }
 
+    const holiday = this.getTodayHoliday(date);
+    if (holiday) {
+      message += `\n\n🎊 今日は何の日？\n${holiday}`;
+    }
+
+    const weatherSummary = await this.getWeatherSummary();
+    if (weatherSummary) {
+      message += `\n\n🌤 今日の天気\n${weatherSummary}`;
+    }
+
+    const trivia = this.getRandomTrivia();
+    message += `\n\n📚 今日の雑学\n${trivia}`;
+
+    const motivation = this.getRandomMotivation();
+    message += `\n\n💬 今日のひとこと\n${motivation}`;
+
+    message += '\n\nhttps://oha-line.vercel.app/';
+
     return message;
+  }
+
+  /**
+   * 日付文字列を取得（YYYY-MM-DD形式）
+   */
+  private getDateString(isTomorrow = false): string {
+    const date = new Date();
+    if (isTomorrow) {
+      date.setDate(date.getDate() + 1);
+    }
+
+    const formatter = new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(date);
+    const year = parts.find((p) => p.type === 'year')!.value;
+    const month = parts.find((p) => p.type === 'month')!.value;
+    const day = parts.find((p) => p.type === 'day')!.value;
+
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
+   * モチベーションクォートをランダムに取得
+   */
+  private getRandomMotivation(): string {
+    return MOTIVATION_QUOTES[
+      Math.floor(Math.random() * MOTIVATION_QUOTES.length)
+    ];
   }
 }
 ```
 
 #### 4.4 通知コントローラーの実装
 
-**`backend/src/notification/notification.controller.ts`** を作成：
+**`backend/src/notification/notification.controller.ts`**:
 
 ```typescript
-import { Controller, Post, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationService } from './notification.service';
 
 @Controller('notifications')
@@ -244,16 +295,18 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   /**
-   * 指定ユーザーの本日のTodoをLINE通知
-   * POST /notifications/send/:userId
+   * 認証済みユーザーの翌日のTodoをLINE通知
+   * POST /notifications/send
    */
-  @Post('send/:userId')
-  async sendNotification(@Param('userId', ParseIntPipe) userId: number) {
+  @Post('send')
+  @UseGuards(JwtAuthGuard)
+  async sendNotification(@Request() req: any) {
     try {
-      await this.notificationService.sendTodayTodos(userId);
+      const userId = req.user.id;
+      await this.notificationService.sendTodos(userId, 'tomorrow');
       return {
         success: true,
-        message: 'LINE通知を送信しました',
+        message: '翌日のTodo通知を送信しました',
       };
     } catch (error) {
       return {
@@ -263,24 +316,35 @@ export class NotificationController {
       };
     }
   }
-
-  /**
-   * 固定ユーザー（ID: 1）の本日のTodoをLINE通知
-   * POST /notifications/send
-   */
-  @Post('send')
-  async sendNotificationToFixedUser() {
-    const FIXED_USER_ID = 1;
-    return this.sendNotification(FIXED_USER_ID);
-  }
 }
 ```
 
-### ステップ5: モジュールの登録
+### ステップ5: 自動スケジューラーの設定
 
-#### 5.1 LINEモジュールの作成（オプション）
+詳細は [SCHEDULER_IMPLEMENTATION.md](./SCHEDULER_IMPLEMENTATION.md) を参照してください。
 
-**`backend/src/line/line.module.ts`** を作成：
+### ステップ6: モジュールの登録
+
+**`backend/src/notification/notification.module.ts`**:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { NotificationController } from './notification.controller';
+import { NotificationService } from './notification.service';
+import { NotificationScheduler } from './notification.scheduler';
+import { LineModule } from '../line/line.module';
+import { TodoModule } from '../todo/todo.module';
+import { PrismaService } from '../prisma.service';
+
+@Module({
+  imports: [LineModule, TodoModule],
+  controllers: [NotificationController],
+  providers: [NotificationService, NotificationScheduler, PrismaService],
+})
+export class NotificationModule {}
+```
+
+**`backend/src/line/line.module.ts`**:
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -293,169 +357,167 @@ import { LineService } from './line.service';
 export class LineModule {}
 ```
 
-#### 5.2 通知モジュールの作成
+### ステップ7: AppModuleへの登録
 
-**`backend/src/notification/notification.module.ts`** を作成：
-
-```typescript
-import { Module } from '@nestjs/common';
-import { NotificationController } from './notification.controller';
-import { NotificationService } from './notification.service';
-import { LineService } from '../line/line.service';
-import { PrismaService } from '../prisma.service';
-import { TodoService } from '../todo/todo.service';
-
-@Module({
-  controllers: [NotificationController],
-  providers: [NotificationService, LineService, PrismaService, TodoService],
-})
-export class NotificationModule {}
-```
-
-#### 5.3 AppModuleへの登録
-
-**`backend/src/app.module.ts`** を更新：
+**`backend/src/app.module.ts`** (抜粋):
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { TodoController } from './todo/todo.controller';
-import { TodoService } from './todo/todo.service';
-import { UserService } from './user/user.service';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationModule } from './notification/notification.module';
+import { TodoModule } from './todo/todo.module';
+import { AuthModule } from './auth/auth.module';
+import { LineModule } from './line/line.module';
 import { PrismaService } from './prisma.service';
-import { NotificationModule } from './notification/notification.module'; // 追加
 
 @Module({
-  imports: [NotificationModule], // 追加
-  controllers: [TodoController],
-  providers: [TodoService, UserService, PrismaService],
+  imports: [
+    ScheduleModule.forRoot(), // スケジューラー有効化
+    NotificationModule,
+    TodoModule,
+    AuthModule,
+    LineModule,
+  ],
+  providers: [PrismaService],
 })
 export class AppModule {}
 ```
 
-### ステップ6: データベースの更新
+### ステップ8: 定数ファイルの作成
 
-現在のUserテーブルには`lineUserId`と`lineToken`フィールドが既に存在しますが、
-実際のLINE User IDを取得する必要があります。
+#### 天気情報
 
-#### 6.1 LINE User IDの取得方法
+**`backend/src/notification/weather.constant.ts`**:
 
-1. LINE Botを友だち追加
-2. Botに何かメッセージを送信（Webhookが設定されていれば取得可能）
-3. または、LINE Developersコンソールの「Messaging API」タブで確認
+```typescript
+export type WeatherLocation = {
+  name: string;
+  lat: number;
+  lon: number;
+};
 
-#### 6.2 データベースへの反映
-
-Prisma Studioを使用して更新：
-
-```bash
-cd backend
-npx prisma studio
+export const WEATHER_LOCATIONS: WeatherLocation[] = [
+  { name: '東京', lat: 35.6762, lon: 139.6503 },
+  { name: '京都', lat: 35.0116, lon: 135.7681 },
+  { name: '大阪', lat: 34.6937, lon: 135.5023 },
+  { name: '札幌', lat: 43.0618, lon: 141.3545 },
+  { name: '福岡', lat: 33.5902, lon: 130.4017 },
+];
 ```
 
-または、直接SQLで更新：
+#### モチベーションクォート
 
-```sql
-UPDATE "User"
-SET "lineUserId" = '実際のLINE_USER_ID',
-    "lineToken" = '実際のCHANNEL_ACCESS_TOKEN'
-WHERE id = 1;
+**`backend/src/notification/motivation.constant.ts`**:
+
+```typescript
+export const MOTIVATION_QUOTES = [
+  '🌟 自分のペースを信じて進もう',
+  '💪 今日のあなたなら絶対できる',
+  '✨ 小さな積み重ねが大きな成果になる',
+  '🚀 チャレンジ精神が成長を生む',
+  '💝 自分を褒めることを忘れずに',
+  // ... 全30個
+];
 ```
 
-**注意**: `lineToken`フィールドは実際には使用しませんが、将来的な拡張のために保持しています。
-実際の送信には環境変数の`LINE_CHANNEL_ACCESS_TOKEN`を使用します。
+### ステップ9: 動作確認
 
-### ステップ7: 動作確認
-
-#### 7.1 バックエンドサーバーの起動
+#### 9.1 バックエンドサーバーの起動
 
 ```bash
 cd backend
 npm run start:dev
 ```
 
-#### 7.2 通知の送信テスト
+#### 9.2 スケジューラーの動作確認
 
-固定ユーザー（ID: 1）に通知を送信：
+ログで確認：
+
+```
+[NotificationScheduler] スケジューラー起動: 現在時刻 09:00
+[NotificationScheduler] 2名のユーザーに通知を送信開始
+```
+
+#### 9.3 手動送信の確認
 
 ```bash
-curl -X POST http://localhost:5000/notifications/send
+curl -X POST http://localhost:5000/notifications/send \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-または、指定ユーザーに送信：
+## メッセージ形式
 
-```bash
-curl -X POST http://localhost:5000/notifications/send/1
+### 統一メッセージ形式
+
+すべての通知は以下の形式で送信されます：
+
+```
+📋 今日のTodo (2月7日)
+
+✅ 1. やること1
+⬜ 2. やること2
+
+🌤️ 今日の天気
+東京: 晴れのち曇り。気温26°C
+
+💡 豆知識
+地球は1秒間に約30km移動しています。
+
+✨ 今日のひとこと
+🌟 自分のペースを信じて進もう
 ```
 
-#### 7.3 レスポンス例
+### メッセージ要素
 
-成功時：
-
-```json
-{
-  "success": true,
-  "message": "LINE通知を送信しました"
-}
-```
-
-エラー時：
-
-```json
-{
-  "success": false,
-  "message": "エラーメッセージ"
-}
-```
+1. **Todoセクション**: 本日のTodo一覧
+2. **天気情報**: 5都市からランダム選択
+3. **トリビア**: 36個の豆知識からランダム選択
+4. **祝日情報**: 該当日付の場合のみ表示
+5. **励ましメッセージ**: 30個のクォートからランダム選択
 
 ## トラブルシューティング
 
 ### エラー: LINE_CHANNEL_ACCESS_TOKEN is not set
 
-- `.env`ファイルに`LINE_CHANNEL_ACCESS_TOKEN`が設定されているか確認
-- バックエンドサーバーを再起動
+```bash
+# .envファイルの確認
+cat backend/.env | grep LINE_CHANNEL_ACCESS_TOKEN
+
+# サーバー再起動
+npm run start:dev
+```
 
 ### エラー: Invalid channel access token
 
-- LINE Developersコンソールでトークンが正しく発行されているか確認
-- トークンが期限切れでないか確認（長期トークンの場合、有効期限は確認が必要）
+1. LINE Developersコンソールでトークンを再確認
+2. トークンが期限切れでないか確認
+3. `.env` ファイルのトークンを更新
 
 ### エラー: User not found
 
-- データベースにユーザーが存在するか確認
-- `npx prisma studio`で確認
+```bash
+# Prisma Studioで確認
+npx prisma studio
 
-### エラー: LINE送信エラー
+# SQL確認
+SELECT id, lineDisplayName, lineMessagingId FROM "User";
+```
 
-- LINE Botが友だち追加されているか確認
-- LINE User IDが正しいか確認
-- チャネルアクセストークンが有効か確認
+### エラー: スケジューラーが動作しない
+
+1. `ScheduleModule.forRoot()` が `app.module.ts` に追加されているか確認
+2. `NotificationScheduler` が `notification.module.ts` の `providers` に登録されているか確認
+3. ログを確認: `[NotificationScheduler]` で検索
 
 ## 次のステップ
 
-実装が完了したら、以下の機能追加を検討できます：
-
-1. **フロントエンドからの通知送信**
-   - フロントエンドに「通知を送信」ボタンを追加
-   - APIエンドポイントを呼び出して通知を送信
-
-2. **通知履歴の保存**
-   - 送信履歴テーブルを作成
-   - 送信日時、内容、成功/失敗を記録
-
-3. **エラーハンドリングの強化**
-   - リトライロジックの実装
-   - エラーログの記録
-
-4. **メッセージフォーマットの改善**
-   - Flex Messageの使用
-   - リッチなUIでの表示
-
-5. **天気予報・AI機能の統合**
-   - 天気予報APIの連携
-   - AI APIの連携
+- 🔲 本番環境へのデプロイ
+- 🔲 エラーモニタリング設定
+- 🔲 メッセージのカスタマイズ拡張
+- 🔲 ユーザーごとのメッセージテンプレート設定
 
 ## 参考資料
 
 - [LINE Messaging API 公式ドキュメント](https://developers.line.biz/ja/docs/messaging-api/)
-- [@line/bot-sdk 公式リポジトリ](https://github.com/line/line-bot-sdk-nodejs)
-- [NestJS 公式ドキュメント](https://docs.nestjs.com/)
+- [@line/bot-sdk](https://github.com/line/line-bot-sdk-nodejs)
+- [NestJS Scheduler](https://docs.nestjs.com/techniques/task-scheduling)

@@ -123,6 +123,8 @@ export class NotificationService {
     const motivation = this.getRandomMotivation();
     message += `\n\n💬 今日のひとこと\n${motivation}`;
 
+    message += '\n\nhttps://oha-line.vercel.app/';
+
     return message;
   }
 

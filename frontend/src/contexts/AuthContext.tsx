@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 interface User {
   id: number;
-  lineUserId: string;
+  lineLoginId: string;
   lineDisplayName: string;
   linePictureUrl?: string;
   lineMessagingId?: string | null;
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ログイン処理
   const login = useCallback(
     (token: string) => {
-      document.cookie = `auth_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      document.cookie = `auth_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`;
       setIsAuthenticated(true);
       // トークン保存後、少し待ってからユーザー情報を取得
       setTimeout(() => {

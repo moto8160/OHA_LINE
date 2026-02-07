@@ -29,8 +29,10 @@ NestJS + Prisma + PostgreSQL を使用して構築されています。
 
 ## 機能
 
-- TodoのCRUD操作
-- ユーザー管理（現在は固定ユーザー）
+- TodoのCRUD操作（完了状態の更新含む）
+- LINE OAuth 認証
+- LINE通知（自動スケジューラー + 手動送信）
+- 天気情報・祝日・雑学・励ましメッセージの配信
 - データベース管理（Prisma）
 
 詳細な実装内容は [docs/BACKEND_IMPLEMENTATION.md](./docs/BACKEND_IMPLEMENTATION.md) を参照してください。
@@ -49,6 +51,9 @@ npm install
 
 ```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
+JWT_SECRET=your_jwt_secret
+LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token
+FRONTEND_URL=http://localhost:3000
 ```
 
 ### 3. データベースマイグレーション
@@ -102,6 +107,20 @@ npm run format
 - `GET /todos` - すべてのTodoを取得
 - `POST /todos` - 新しいTodoを登録
 - `GET /todos/by-date?date=YYYY-MM-DD` - 指定日付のTodoを取得
+- `DELETE /todos/:id` - Todoを削除
+- `PATCH /todos/:id/status` - Todoの完了状態を更新
+- `DELETE /todos/completed` - 完了済みTodoを一括削除
+
+### 認証関連
+
+- `GET /auth/line` - LINE OAuth開始
+- `GET /auth/line/callback` - LINE OAuthコールバック
+- `GET /auth/me` - 現在のユーザー情報
+- `PATCH /auth/notification-time` - 通知時刻の更新
+
+### 通知関連
+
+- `POST /notifications/send` - 翌日のTodo通知を手動送信
 
 ## データベース
 

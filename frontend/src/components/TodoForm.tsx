@@ -54,7 +54,7 @@ export function TodoForm({
             type="text"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="例：買い物、掃除、仕事など"
+            placeholder="例：買い物、仕事など"
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-white"
           />
         </div>

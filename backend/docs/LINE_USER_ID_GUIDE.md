@@ -1,80 +1,57 @@
-# LINE User ID取得ガイド
+# LINE Messaging ID取得ガイド
+
+## 概要
+
+LINE通知の送信先は **`lineMessagingId`（LINE Bot用のUser ID）** に保存されます。
+このIDは、Webhook経由で取得し、**トークン連携**で自動的に登録されます。
 
 ## Webhook URLについて
 
-**現在の実装では、Webhook URLの設定は不要です。**
+**現在の実装では、Webhook URLの設定が必要です。**
 
-手動実行による通知送信のみを実装しているため、Webhookは使用しません。
-Webhook URLのフィールドは空のままで問題ありません。
+LINE Botの友だち追加やメッセージ受信イベントを受け取り、`lineMessagingId` を自動登録します。
 
-将来的に自動応答機能を追加する場合は、公開されたHTTPS URLを設定する必要がありますが、現時点では設定不要です。
+### 設定例
 
-## LINE User IDの取得方法
+- 開発環境（ngrok等を使用）: `https://xxxx.ngrok-free.app/line/webhook`
+- 本番環境: `https://yourdomain.com/line/webhook`
 
-### 方法1: LINE Developersコンソールで確認（推奨）
+LINE Developers の「Messaging API」タブで以下を設定してください：
 
-1. [LINE Developers](https://developers.line.biz/ja/) にログイン
-2. 作成したチャネルを選択
-3. 「Messaging API」タブを開く
-4. 画面を下にスクロールして「友だち追加」セクションを確認
-5. Botを友だち追加しているユーザーの一覧が表示されます
-6. 各ユーザーの「User ID」をコピー
+- Webhook URL: 上記のURL
+- Webhookの利用: **有効**
 
-**注意**: この方法は、Botを友だち追加した後に表示されます。
+## LINE Messaging IDの取得・連携手順
 
-### 方法2: Webhookを一時的に設定して取得（上級者向け）
+1. ✅ おはLINE Botを友だち追加
+2. ✅ Webアプリの「LINE連携」セクションでトークンを取得
+3. ✅ LINEチャットに `LINK:xxxxxx` を送信
+4. ✅ 「連携が完了しました」と返ってくればOK
 
-1. 一時的にWebhook URLを設定（ngrokなどでローカルサーバーを公開）
-2. Botにメッセージを送信
-3. Webhookイベントのログから`source.userId`を確認
+この時点で `lineMessagingId` がユーザーに紐づきます。
 
-**注意**: この方法は複雑なため、方法1を推奨します。
+## 連携メッセージ例
 
-### 方法3: LINE Bot SDKのプロファイル取得APIを使用
-
-Botを友だち追加後、以下のエンドポイントでプロファイルを取得できますが、まずは方法1が最も簡単です。
-
-## テスト用エンドポイント
-
-LINE User IDが取得できたら、以下のエンドポイントでテストできます：
-
-```bash
-curl -X POST http://localhost:5000/notifications/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "lineUserId": "YOUR_LINE_USER_ID",
-    "message": "テストメッセージです"
-  }'
+```
+LINK:4f3b2c1d-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-または、メッセージを省略するとデフォルトメッセージが送信されます：
+## 動作確認
 
-```bash
-curl -X POST http://localhost:5000/notifications/test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "lineUserId": "YOUR_LINE_USER_ID"
-  }'
-```
-
-## 手順まとめ
-
-1. ✅ LINE Botを友だち追加（QRコードをスキャン）
-2. ✅ LINE DevelopersコンソールでUser IDを確認
-3. ✅ テストエンドポイントで固定メッセージを送信
-4. ✅ LINEアプリでメッセージが届くことを確認
+- Webアプリの「LINE通知テスト送信」ボタン
+- もしくは `POST /notifications/send` を利用（認証必須）
 
 ## トラブルシューティング
 
-### User IDが表示されない場合
+### LINE連携が完了しない
 
+- Webhook URL が有効か確認
 - Botを友だち追加しているか確認
-- LINE Developersコンソールをリロード
-- 別のLINEアカウントで試す
+- `LINK:` トークンが正しいか確認
+- バックエンドのログを確認
 
-### メッセージが届かない場合
+### メッセージが届かない
 
-- LINE User IDが正しいか確認
-- チャネルアクセストークンが正しく設定されているか確認
-- Botを友だち追加しているか確認
-- バックエンドサーバーのログを確認
+- `LINE_CHANNEL_ACCESS_TOKEN` が正しいか確認
+- `lineMessagingId` がDBに保存されているか確認
+- スケジューラーが実行されているか確認

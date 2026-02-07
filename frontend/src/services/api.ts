@@ -20,6 +20,18 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+// レスポンスを安全にJSONパースする
+async function parseResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('Failed to parse JSON:', text);
+    throw new Error('Invalid JSON response from server');
+  }
+}
+
 export interface CreateTodoDto {
   title: string;
   date: string;
@@ -34,7 +46,7 @@ export const todoApi = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch todos');
-    return response.json();
+    return parseResponse(response);
   },
 
   /**
@@ -47,7 +59,7 @@ export const todoApi = {
       body: JSON.stringify(dto),
     });
     if (!response.ok) throw new Error('Failed to create todo');
-    return response.json();
+    return parseResponse(response);
   },
 
   /**
@@ -59,7 +71,19 @@ export const todoApi = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to delete todo');
-    return response.json();
+    return parseResponse(response);
+  },
+
+  /**
+   * 完了済みTodoを一括削除
+   */
+  async deleteCompleted() {
+    const response = await fetch(`${API_BASE}/todos/completed`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete completed todos');
+    return parseResponse(response);
   },
 
   /**
@@ -72,7 +96,7 @@ export const todoApi = {
       body: JSON.stringify({ isCompleted }),
     });
     if (!response.ok) throw new Error('Failed to update todo status');
-    return response.json();
+    return parseResponse(response);
   },
 };
 
@@ -86,7 +110,7 @@ export const notificationApi = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to send notification');
-    return response.json();
+    return parseResponse(response);
   },
 };
 
@@ -101,7 +125,7 @@ export const profileApi = {
       body: JSON.stringify({ notificationTime }),
     });
     if (!response.ok) throw new Error('Failed to update notification time');
-    return response.json();
+    return parseResponse(response);
   },
 };
 
@@ -115,6 +139,6 @@ export const linkApi = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to generate link token');
-    return response.json();
+    return parseResponse(response);
   },
 };

@@ -250,6 +250,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 JwtStrategy は、**Passport.js** の JWT検証戦略を実装しています。
 
+---
+
+## JWT有効期限
+
+現在の実装では、JWTの有効期限は **30日** に設定されています。
+
+```typescript
+// src/auth/auth.module.ts
+JwtModule.register({
+  secret: process.env.JWT_SECRET,
+  signOptions: { expiresIn: '30d' }, // 30日間有効
+});
+```
+
+**ポイント**:
+
+- 有効期限は `expiresIn: '30d'` で管理
+- 長期ログイン前提のため、フロント側のクッキー有効期限も30日に合わせる
+
 ### constructor の設定
 
 ```typescript
@@ -325,7 +344,7 @@ async validate(payload: any) {
 
 ```
 1. フロントエンドがAPI呼び出し
-   POST /api/auth/me
+  GET /auth/me
    Headers: {
      Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    }
@@ -351,7 +370,7 @@ async validate(payload: any) {
 7. コントローラーメソッドが実行される
    async getProfile(@CurrentUser() user) {
      // @CurrentUser() デコレーターが request.user を取得
-     // user = { id: 1, lineUserId: "U123...", lineDisplayName: "山田太郎", ... }
+    // user = { id: 1, lineLoginId: "U123...", lineDisplayName: "山田太郎", ... }
    }
     ↓
 8. ユーザー情報をレスポンスとして返す

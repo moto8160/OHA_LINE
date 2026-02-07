@@ -5,8 +5,9 @@
 フロントエンドからTodoを登録し、指定した時間に以下の情報を含むLINEメッセージを送信するアプリケーション：
 
 - 本日のTodo一覧
-- 天気予報
-- AIからの一言
+- 天気情報（Open-Meteo）
+- 祝日・雑学
+- 励ましの一言（固定クォート）
 
 ---
 
@@ -14,24 +15,24 @@
 
 ### 1.1 データベース設計
 
-- [ ] Todoテーブル設計
-  - id, userId, title, description, scheduledTime, createdAt, updatedAt など
-- [ ] ユーザーテーブル設計
-  - id, lineUserId, lineToken, createdAt など
+- [x] Todoテーブル設計
+  - id, userId, title, date, isCompleted, createdAt, updatedAt など
+- [x] ユーザーテーブル設計
+  - id, lineMessagingId, lineDisplayName, notificationTime, createdAt など
 - [ ] 送信履歴テーブル設計（オプション）
   - id, userId, sentAt, content など
 
 ### 1.2 API仕様書作成
 
-- [ ] Todo CRUD エンドポイント定義
-- [ ] ユーザー認証エンドポイント定義
-- [ ] スケジューラー関連エンドポイント定義
+- [x] Todo CRUD エンドポイント定義
+- [x] ユーザー認証エンドポイント定義
+- [x] スケジューラー関連エンドポイント定義
 
 ### 1.3 外部API連携準備
 
-- [ ] LINE Messaging API の登録・認証情報取得
-- [ ] 天気予報API（OpenWeatherMap など）の登録
-- [ ] AIサービス（OpenAI, Claude など）の登録
+- [x] LINE Messaging API の登録・認証情報取得
+- [x] 天気予報API（Open-Meteo）の利用
+- [ ] AIサービス（OpenAI, Claude など）の登録（未使用）
 
 ---
 
@@ -39,45 +40,44 @@
 
 ### 2.1 基本CRUD機能
 
-- [ ] Todo CREATE API 実装
-- [ ] Todo READ API 実装
-- [ ] Todo UPDATE API 実装
-- [ ] Todo DELETE API 実装
-- [ ] タイムゾーン対応
+- [x] Todo CREATE API 実装
+- [x] Todo READ API 実装
+- [x] Todo UPDATE API 実装（完了状態更新）
+- [x] Todo DELETE API 実装
+- [x] タイムゾーン対応
 
 ### 2.2 LINE連携機能
 
-- [ ] LINE Bot SDK の導入
-- [ ] ユーザー認証（LINE ログイン）の実装
-- [ ] LINE Token の保存・管理
-- [ ] メッセージ送信関数の実装
+- [x] LINE Bot SDK の導入
+- [x] ユーザー認証（LINE ログイン）の実装
+- [x] LINE Token の保存・管理
+- [x] メッセージ送信関数の実装
 
 ### 2.3 スケジューラー実装
 
-- [ ] Node-schedule または Bull の導入
-- [ ] 定時メッセージ送信ジョブの実装
+- [x] NestJS Scheduler の導入
+- [x] 定時メッセージ送信ジョブの実装
   - 指定時間に実行
   - 複数ユーザー対応
-- [ ] エラーハンドリング・リトライロジック
+- [x] エラーハンドリング
 
 ### 2.4 天気予報API連携
 
-- [ ] 天気予報API クライアント実装
+- [x] 天気予報API クライアント実装（Open-Meteo）
 - [ ] ユーザーの位置情報（都市）の保存
-- [ ] 天気情報の取得・フォーマット
+- [x] 天気情報の取得・フォーマット
 
 ### 2.5 AI統合機能
 
-- [ ] OpenAI / Claude SDK の導入
-- [ ] AIプロンプト設計
-  - 「励ましの一言」を生成するプロンプト
+- [ ] OpenAI / Claude SDK の導入（未使用）
+- [x] 励ましの一言（固定クォート）を追加
 - [ ] AI応答の取得・キャッシング（コスト最適化）
 
 ### 2.6 メッセージ組立・送信
 
-- [ ] テンプレート設計（メッセージ形式）
+- [x] テンプレート設計（メッセージ形式）
 - [ ] 複数メッセージフォーマット対応（テキスト、Flex Message など）
-- [ ] LINE メッセージ送信実装
+- [x] LINE メッセージ送信実装
 
 ### 2.7 テスト
 
@@ -91,45 +91,46 @@
 
 ### 3.1 基本UI/UX
 
-- [ ] ページレイアウト設計
+- [x] ページレイアウト設計
   - Todo登録ページ
   - Todo一覧ページ
-  - 設定ページ
+  - 設定セクション（通知時刻/LINE連携）
 
 ### 3.2 Todo登録機能
 
-- [ ] フォーム実装
+- [x] フォーム実装
   - Todoタイトル入力
-  - 説明入力
-  - 送信時刻選択
-- [ ] バリデーション
-- [ ] バックエンドAPI連携
+  - 日付選択
+- [x] バリデーション
+- [x] バックエンドAPI連携
 
 ### 3.3 Todo管理機能
 
-- [ ] Todo一覧表示
-- [ ] Todo編集機能
-- [ ] Todo削除機能
+- [x] Todo一覧表示
+- [ ] Todo編集機能（タイトル/日付の編集）
+- [x] Todo削除機能
+- [x] 完了状態の管理（チェックボックス + 一括更新）
+- [x] 完了済みTodoの一括削除
 - [ ] 検索・フィルタリング（オプション）
 
 ### 3.4 ユーザー認証UI
 
-- [ ] LINE ログインボタン実装
-- [ ] トークン管理
-- [ ] ログアウト機能
+- [x] LINE ログインボタン実装
+- [x] トークン管理
+- [x] ログアウト機能
 
 ### 3.5 設定ページ
 
 - [ ] 位置情報（都市）設定
-- [ ] 送信時刻デフォルト設定
+- [x] 送信時刻デフォルト設定
 - [ ] AIスタイル設定（オプション）
 
 ### 3.6 ユーザー体験向上
 
-- [ ] ローディング画面
-- [ ] エラーメッセージ表示
-- [ ] 成功通知
-- [ ] レスポンシブデザイン
+- [x] ローディング表示
+- [x] エラーメッセージ表示
+- [x] 成功通知
+- [x] レスポンシブデザイン（モバイル最適化）
 
 ### 3.7 テスト
 
@@ -208,7 +209,7 @@
 ### 重要
 
 5. 天気予報統合
-6. AIからの一言機能
+6. 励ましの一言（固定クォート）
 7. フロント Todo管理UI
 
 ### 拡張
@@ -223,24 +224,24 @@
 
 ### バックエンド
 
-- [ ] NestJS（既存）
-- [ ] PostgreSQL（Docker）
-- [ ] Node-schedule または Bull（スケジューラー）
-- [ ] LINE Bot SDK
-- [ ] Axios または node-fetch（API呼び出し）
+- [x] NestJS（既存）
+- [x] PostgreSQL（Docker）
+- [x] NestJS Scheduler（@nestjs/schedule）
+- [x] LINE Bot SDK
+- [x] fetch（Open-Meteo API呼び出し）
 - [ ] Jest（テスト）
 
 ### フロントエンド
 
-- [ ] Next.js（既存）
-- [ ] React
-- [ ] TypeScript
-- [ ] CSS または Tailwind CSS
+- [x] Next.js（既存）
+- [x] React
+- [x] TypeScript
+- [x] Tailwind CSS
 
 ### 外部サービス
 
-- [ ] LINE Messaging API
-- [ ] 天気予報API（OpenWeatherMap など）
+- [x] LINE Messaging API
+- [x] 天気予報API（Open-Meteo）
 - [ ] AI API（OpenAI / Claude など）
 
 ---

@@ -101,6 +101,25 @@ export default function Home() {
     }
   };
 
+  const handleDeleteCompleted = async () => {
+    if (completedTodos.length === 0) return;
+    if (!window.confirm('完了済みTodoをすべて削除してもよろしいですか？')) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await todoApi.deleteCompleted();
+      setSuccessMessage('完了済みTodoを削除しました！');
+      await fetchTodos();
+      setTimeout(() => setSuccessMessage(''), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '削除に失敗しました');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-emerald-50 pb-20">
       {/* ヘッダー */}
@@ -212,7 +231,16 @@ export default function Home() {
                     {showCompleted ? '非表示' : '表示'}
                   </button>
                 </div>
-                <span className="text-xs text-slate-500">{completedTodos.length} 件</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">{completedTodos.length} 件</span>
+                  <button
+                    onClick={handleDeleteCompleted}
+                    disabled={isSaving || completedTodos.length === 0}
+                    className="text-xs px-3 py-1 rounded-full border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:text-slate-300 disabled:border-slate-200"
+                  >
+                    完了を一括削除
+                  </button>
+                </div>
               </div>
               {showCompleted && (
                 <>
