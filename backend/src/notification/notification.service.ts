@@ -86,6 +86,7 @@ export class NotificationService {
    */
   private async buildMessage(todos: any[], date: Date): Promise<string> {
     const dateStr = date.toLocaleDateString('ja-JP', {
+      timeZone: 'Asia/Tokyo',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
